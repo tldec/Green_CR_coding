@@ -9,7 +9,6 @@ from math import inf
 
 def channelAllocation(Edge,enQ,dataQ,virtualQ,links,chCap,batterCapacity,P_R,t):
     caResults = np.zeros((numOfL,numOfCH),dtype=np.int8)
-    V = [x for x in range(numOfL)]
     # 为每个颜色寻找最大带权独立集
     for k in range(numOfCH):
         # 计算每条链路的权重
