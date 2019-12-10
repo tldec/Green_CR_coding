@@ -1,4 +1,6 @@
 __pycache__/
 .idea/
 .xml
+src/code/__pycache__/
+.pyc
 
