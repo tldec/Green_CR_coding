@@ -71,16 +71,18 @@ def main():
                 # print(channelCapacity)
                 enHarVec = computeEnHar(enQ, enQ_max, t)
                 enHarM[:, t] = enHarVec.T
-                dataHarVec = computeDataHar(dataQ,enQ,enQ_max[w],t)
-                print("Edge:",Edge)
+                dataHarVec = computeDataHar(dataQ,enQ,enQ_max[w],weight,t)
+                # print("Edge:",Edge)
                 caResults = channelAllocation(Edge,enQ,dataQ,virtualQ,link,channelCapacity,enQ_max[w],P_R,t)
+                print("caResult:\n",caResults)
                 dataTransVec,dataRecvVec = computeTransRecv(caResults,link,dist,channelCapacity)
                 dataDropVec = computeDrop(virtualQ,dataQ,weight,dropMax,t)
                 enConVec = computeEnConsumption(caResults,link,distOfLink,dataHarVec)
                 updateEnQ(enQ,enHarVec,enConVec,enQ_max[w],t)
                 updateDataQ(dataQ,dataHarVec,dataTransVec,dataRecvVec,dataDropVec,t)
                 updateVirtualQ(virtualQ,dataQ,epsilon,dataTransVec,dataDropVec,chMax,t)
-                utility[t] = np.log(1+np.sum(dataHarVec[1:])-np.sum(dataDropVec[1:]))
+                print("np.sum(dataHarVec[1:]:",np.sum(dataHarVec[1:]))
+                utility[t] = np.log(1+np.sum(dataHarVec[1:]))-weight*beta*maxSlop*np.sum(dataDropVec[1:])
                 aveUtility[w] = np.sum(utility)/timeSlots
 if '__main__' == __name__:
     main()

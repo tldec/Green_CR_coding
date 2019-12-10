@@ -4,18 +4,23 @@
 import numpy as np
 from code.config import *
 from math import inf
-def computeDataHar(dataQ,enQ,batterCapacity,t):
+def computeDataHar(dataQ,enQ,batterCapacity,weight,t):
     dataHarVec = np.zeros((numOfN,1))
     for n in range(numOfN):
         if (n!=0):
-            tmp = (dataQ[n,t]-(batterCapacity))*P_H
-            if tmp == 0:
-                dataHarVec[n] = 0
-
-            elif (tmp-1)>dataArrival_max:
-                dataHarVec[n] = dataArrival_max
+            tmp = 0
+            if (dataQ[n,t]-(batterCapacity))*P_H == 0:
+                tmp = inf
             else:
-                dataHarVec[n] = tmp -1
+                tmp = (dataQ[n,t]-(batterCapacity))*P_H
+            harVal = weight/tmp -1
+                # dataHarVec[n] = inf
+            if harVal < 0:
+                dataHarVec[n] = 0
+            elif harVal < dataArrival_max:
+                dataHarVec[n] = harVal
+            else:
+                dataHarVec[n] = dataArrival_max
     return dataHarVec
 
 def computeTransRecv(caResults,links,dist,chCapacity):
