@@ -81,7 +81,7 @@ def main():
                 updateEnQ(enQ,enHarVec,enConVec,enQ_max[w],t)
                 updateDataQ(dataQ,dataHarVec,dataTransVec,dataRecvVec,dataDropVec,t)
                 updateVirtualQ(virtualQ,dataQ,epsilon,dataTransVec,dataDropVec,chMax,t)
-                print("np.sum(dataHarVec[1:]:",np.sum(dataHarVec[1:]))
+                # print("np.sum(dataHarVec[1:]:",np.sum(dataHarVec[1:]))
                 utility[t] = np.log(1+np.sum(dataHarVec[1:]))-weight*beta*maxSlop*np.sum(dataDropVec[1:])
                 aveUtility[w] = np.sum(utility)/timeSlots
 if '__main__' == __name__:

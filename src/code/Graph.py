@@ -40,7 +40,6 @@ class Graph:
             if tmpE[n][i] == 1:
                 # print("删除邻居",i)
                 self.removeNode(i)
-
         # print("删除后 wEdge:", self.wEdge)
         self.updateDList()
         self.updateDegree()
