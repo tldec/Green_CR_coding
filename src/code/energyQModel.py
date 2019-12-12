@@ -12,10 +12,7 @@ def computeEnHar(enQ,batterCapacity,t):
         if restCapacity < 0:
             enHarVec[n] = 0
         else:
-            if restCapacity < enGenVec[n]:
-                enHarVec[n] = enGenVec[n]
-            else:
-                enHarVec[n] = restCapacity
+            enHarVec[n] = min(restCapacity,enGenVec[n])
 
     # print("enGenVec\n",enGenVec)
     return enHarVec

@@ -11,4 +11,5 @@ def updateVirtualQ(virtualQ,dataQ,epsilon,dataTransVec,dataDropVec,chMax,t):
             else:
                 virtualQ[n, t + 1] = max(virtualQ[n, t] - dataDropVec[n] - chMax, 0)
         else:
-            virtualQ[n,t] = 0
+            virtualQ[n,t+1] = 0
+

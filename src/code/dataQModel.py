@@ -5,13 +5,25 @@ import numpy as np
 from code.config import *
 from math import inf
 def computeDataHar(dataQ,enQ,flowQ,batterCapacity,t):
+    dataGenVec = np.random.uniform(0, 1, (numOfN, 1)) * dataArrival_max
     dataHarVec = np.zeros((numOfN,1))
     tmp = P_H * (batterCapacity -enQ[:,t]) + dataQ[:,t] - flowQ[:,t]
     # print("computeDataHar()->tmp:\n",tmp)
-    stopHarvest = np.where(tmp > 0)
-    harMax = np.where(tmp <= 0)
+    stopHarvest = np.where(tmp >= 0)
+    harMax = np.where(tmp < 0)
     dataHarVec[stopHarvest] = 0
-    dataHarVec[harMax] = dataArrival_max
+    dataHarVec[harMax] = dataGenVec[harMax]
+    # print("dataHar:\n",dataHarVec)
+    return dataHarVec
+def computeDataHarWithSingleFlowQ(dataQ,enQ,flowQ,batterCapacity,t):
+    dataGenVec = np.random.uniform(0, 1, (numOfN, 1)) * dataArrival_max
+    dataHarVec = np.zeros((numOfN,1))
+    tmp = P_H * (batterCapacity -enQ[:,t]) + dataQ[:,t] - flowQ[t]
+    # print("computeDataHar()->tmp:\n",tmp)
+    stopHarvest = np.where(tmp >= 0)
+    harMax = np.where(tmp < 0)
+    dataHarVec[stopHarvest] = 0
+    dataHarVec[harMax] = dataGenVec[harMax]
     # print("dataHar:\n",dataHarVec)
     return dataHarVec
 
@@ -52,19 +64,6 @@ def computeDrop(virtualQ,dataQ,dataTransVec,weight,dropMax,t):
                 dataDropVec[n] = dataArrival_max
             else:
                 dataDropVec[n] = dataQ[n,t] - dataTransVec[n]
-    # tmp = weight * beta * maxSlop - virtualQ[:, t] - dataQ[:,t]
-    # # 需要丢弃数据的结点
-    # drop = np.where(tmp <= 0)
-    # # 以最大速度丢弃数据
-    # dataDropVec[drop] = dropMax
-    # # 如果当前数据队列长度小于 dropMax 则将数据队列中的所有数据全部丢弃
-    # dropAll = np.where(dataQ[:, t][drop] < dataDropVec[drop])
-    # dataDropVec[dropAll] = dataQ[:, t].reshape(numOfN, 1)[dropAll]
-    #
-    # # 不需要丢弃数据的结点
-    # stopDrop = np.where(tmp > 0)
-    # dataDropVec[stopDrop] = 0
-    # print("computeDrop()->dataDropVec:\n", dataDropVec)
     return dataDropVec
 
 def updateDataQ(dataQ,dataHarVec,dataTransVec,dataRecvVec,dataDropVec,t):

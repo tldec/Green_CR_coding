@@ -17,23 +17,37 @@ def computeFlowInput(weight,flowQ,t):
                 flowQ[n,t] = tmp
             else:
                 flowQ[n, t] = dataArrival_max
-    # flowInVec = np.ones((numOfN,1)) * dataArrival_max
-    # fZeros = np.where(flowQ[:,t]== 0)
-    # flowInVec[fZeros] = inf
-    # noZeros = np.where((flowQ[:,t] != 0))
-    # flowInVec = np.zeros((numOfN,1))
-    # print("flowQ[noZeros]:",flowQ[noZeros])
-    # if (len(noZeros) != 0):
-    #     flowInVec[noZeros] = weight/flowQ[noZeros] -1
-    # flowInVec = np.where(flowInVec > dataArrival_max,dataArrival_max,flowInVec)
-    # print("flowInVec:",flowInVec)
     return flowInVec
+def computeFlowInputWithSingleFlowQ(weight,flowQ,t):
+    flowGenVec = np.random.uniform(0, 1, (numOfN, 1)) * dataArrival_max
+    flowHarVec = np.zeros((numOfN, 1))
+    if flowQ[t] == 0:
+        tmpF = inf
+    else:
+        tmpF = weight / flowQ[t] - 1
+    for i in range(numOfN):
+        if tmpF < 0:
+            flowHarVec[i] = 0
+        elif tmpF >= flowGenVec[i]:
+            flowHarVec[i] = flowGenVec[i]
+        else:
+            flowHarVec[i] = tmpF
+    flowHarVec[0] = 0
+    return np.sum(flowHarVec)
 
 def updateFlowQ(flowQ,flowInVec,dataHarVec,flowQ_max,t):
     # print("flowInVec:",flowInVec)
     # print("dataHarVec:",dataHarVec)
-    flowQ[:,t+1] = flowQ[:,t] - dataHarVec.T + flowInVec.T
+    flowQ[:,t+1] = flowQ[:,t] - dataHarVec.T+ flowInVec.T
+    flowQ[:, t + 1] = np.where(flowQ[:, t + 1]<0,0,flowQ[:, t + 1])
     flowQ[0,t+1] = flowQ_max
+def updateFlowQWithSigleFlowQ(flowQ,flowInVec,dataHarVec,flowQ_max,t):
+    totalIn = flowInVec
+    totalOut = np.sum(dataHarVec[1:])
+    flowQ[t+1] = flowQ[t] - totalOut + totalIn
+    if flowQ[t+1] < 0:
+        flowQ[t+1] = 0
+
 
 
 

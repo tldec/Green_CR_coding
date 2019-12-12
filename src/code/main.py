@@ -11,18 +11,27 @@ from code.virtualQModel import *
 from code.channelAllocationModel import *
 from code.flowQModel import *
 import matplotlib.pyplot as plt
+import random
 
 # 初始化结点能量队列
 enQ = np.zeros((numOfN, timeSlots))
+enQw = np.zeros((numOfN,timeSlots,len(weights)))
+dataQw = np.zeros_like(enQw)
+virtualQw = np.zeros((numOfN,timeSlots,len(weights)))
+flowQ = np.zeros((timeSlots))
+# flowQ = np.zeros_like((enQ))
+flowQw = np.zeros((timeSlots,len(weights)))
+# flowW = np.zeros_like(flowQw)
+# flowQw = np.zeros((numOfN,timeSlots,len(weights)))
 # 初始化结点数据队列
 dataQ = np.zeros_like(enQ)
 # 初始化结点虚拟队列
 virtualQ = np.zeros_like(enQ)
 # 结点流队列
-flowQ = np.zeros_like(enQ)
+# flowQ = np.zeros_like(enQ)
 # 初始化每个结点的网络效益
 # sum_{n:N} f(h_n - d_n)
-utility = np.zeros((timeSlots))
+utility = np.zeros((numOfN,timeSlots))
 # 平均网络效益-权重
 aveUtility = np.zeros((len(weights)))
 # 记录每个时隙结点发送的数据
@@ -55,10 +64,16 @@ access = [0, 1]
 # 主用户可接入概率
 p = [0.4, 0.6]
 P_R = para/distOfLink
+
+def randomcolor():
+    colorArr = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
+    color = ""
+    for i in range(6):
+        color += colorArr[random.randint(0, 14)]
+    return "#" + color
 def main():
-    chMax = np.log2(1 + P_T * 1.5) / ((minDist ** 2) * noise)/1000
-    dataQ_max = weights * maxSlop + 2*dataArrival_max + chMax
-    virtualQ_max = weights * maxSlop * beta + epsilons
+    chMax = bandWidth*np.log2(1 + P_T * 1.5) / ((minDist ** 2) * noise)/1000
+    print("chMax",chMax)
     flowQ_max = weights * maxSlop  + dataArrival_max
     for e in range(len(epsilons)):
         epsilon = epsilons[e]
@@ -72,57 +87,73 @@ def main():
         for w in range((len(weights))):
             weight = weights[w]
             for n in range(numOfN):
-                enQ[n, 0] = enQ_max[w]*0.75
+                enQ[n, 0] = enQ_max[w]*initCapacityRate
             for t in range(timeSlots-1):
                 chState = np.random.choice(access, (numOfCH, 1), p)
-                channelCapacity =(weight/1000)* np.log2(1 + P_T * (np.random.rand(numOfL, numOfCH) + 0.5) / \
+                channelCapacity =bandWidth*(weight/1000)* np.log2(1 + P_T * (np.random.rand(numOfL, numOfCH) + 0.5) / \
                                                 ((distOfLink ** 2) * noise)) * chState.T
-                # print(channelCapacity)
-
                 enHarVec = computeEnHar(enQ, enQ_max[w], t)
                 enHarM[:, t] = enHarVec.T
-                # computeDataHar(dataQ, enQ, flowQ, batterCapacity, t):
-                dataHarVec = computeDataHar(dataQ,enQ,flowQ,enQ_max[w],t)
-                # print("dataHarVec:\n",dataHarVec)
-                # print("Edge:",Edge)
+
+                dataHarVec = computeDataHarWithSingleFlowQ(dataQ,enQ,flowQ,enQ_max[w],t)
+                dataHarM[:,t] = dataHarVec.T
                 caResults = channelAllocation(Edge,enQ,dataQ,virtualQ,link,channelCapacity,enQ_max[w],P_R,chState,t)
-                # if (np.sum(caResults) >0):
-                #     print("t",t,"caResult:\n",caResults)
-                # else:
-                #     print("t", t)
-                # print("chCap:",channelCapacity)
-                # print("CA:",caResults)
                 dataTransVec,dataRecvVec = computeTransRecv(caResults,link,dist,channelCapacity,dataQ,t)
-                # print("dataTransVec:",dataTransVec)
-                # print("dataRecvVec:",dataRecvVec)
+
                 dataDropVec = computeDrop(virtualQ,dataQ,dataTransVec,weight,dropMax[e],t)
+                dataDropM[:,t] = dataDropVec.T
                 enConVec = computeEnConsumption(caResults,link,distOfLink,dataHarVec)
-                flowInVec = computeFlowInput(weight,flowQ,t)
-                updateFlowQ(flowQ,flowInVec,dataHarVec,flowQ_max[w],t)
+                flowInVec = computeFlowInputWithSingleFlowQ(weight, flowQ, t)
+                updateFlowQWithSigleFlowQ(flowQ,flowInVec,dataHarVec,flowQ_max[w],t)
+                # print("flowQ:",flowQ)
                 updateEnQ(enQ,enHarVec,enConVec,enQ_max[w],t)
                 updateDataQ(dataQ,dataHarVec,dataTransVec,dataRecvVec,dataDropVec,t)
                 updateVirtualQ(virtualQ,dataQ,epsilon,dataTransVec,dataDropVec,chMax,t)
-                # print("np.sum(dataHarVec[1:]:",np.sum(dataHarVec[1:]))
-                utility[t] = np.log(1+np.sum(dataHarVec[1:]))-weight*beta*maxSlop*np.sum(dataDropVec[1:])
-                aveUtility[w] = np.sum(utility)/timeSlots
-                print("e",epsilon,"w",weight,"t",t)
-                # print()
-    # print("enQ_max",enQ_max)
-    plt.plot(range(timeSlots),enQ[2],color='red')
-    plt.legend(title="Ent")
+            aveHar = np.average(dataHarM[1:,:],axis=1)
+            aveDrop = np.average(dataDropM[1:, :], axis=1)
+            # print("aveHar",aveHar)
+            # print("aveDrop", aveDrop)
+            aveUtility[w] = np.sum(np.log(epsilon+aveHar - aveDrop))
+            enQw[:,:,w] = enQ
+            dataQw[:,:,w] = dataQ
+            # 只使用一个流队列
+            flowQw[:,w] = flowQ.reshape((flowQw[:,w].shape))
+            virtualQw[:,:,w] = virtualQ
+            print("w =",weight,"aveUtility =",aveUtility[w])
+    np.savetxt('E:\\utility.csv', aveUtility, delimiter=',')
+
+
+
+    for w in range(len(weights)):
+        plt.title('Energy Queue')
+        s = "{0} {1}".format("V = ", weights[w])
+        plt.plot(range(timeSlots), enQw[10,:,w], c=randomcolor(), label=s)
+        plt.legend()  # 显示图例
     plt.show()
-    plt.plot(range(timeSlots), dataQ[2], color='blue')
-    plt.legend(title="Dnt")
+    for w in range(len(weights)):
+        plt.title('Data Queue')
+        s = "{0} {1}".format("V = ", weights[w])
+        plt.plot(range(timeSlots), dataQw[10,:,w], c=randomcolor(), label=s)
+        plt.legend()  # 显示图例
     plt.show()
-    plt.plot(range(timeSlots), virtualQ[2], color='blue')
-    plt.legend(title="VQnt")
+    for w in range(len(weights)):
+        plt.title('Virtual Queue')
+        s = "{0} {1}".format("V = ", weights[w])
+        # s = "V = %d." % (weights[w])
+        plt.plot(range(timeSlots), virtualQw[10,:,w], c=randomcolor(), label=s)
+        plt.legend()  # 显示图例
     plt.show()
-    plt.plot(weights, aveUtility, color='green')
+    # 共用一个流队列
+    for w in range(len(weights)):
+        plt.title('Flow Queue')
+        s = "{0} {1}".format("V = ", weights[w])
+        plt.plot(range(timeSlots), flowQw[:,w], c=randomcolor(), label=s)
+        plt.legend()  # 显示图例
+    plt.show()
+    plt.plot(weights, aveUtility, color='green',linestyle = '-', marker = 's')
     plt.legend(title="utility")
     plt.show()
-    # plt.plot(range(timeSlots), flowQ[2], color='blue')
-    # plt.legend(title="FQnt")
-    # plt.show()
+
 if '__main__' == __name__:
     main()
 

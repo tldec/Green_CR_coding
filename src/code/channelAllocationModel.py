@@ -27,6 +27,8 @@ def channelAllocation(Edge,enQ,dataQ,virtualQ,links,chCap,batterCapacity,P_R,chS
                 # print("t:", t, "tmp_2:", P_R[m,0]*(batterCapacity - enQ[De,t]) + P_T*(batterCapacity - enQ[Fe,t]))
                 wEdge[m] = -(chCap[m,k] * (dataQ[De,t] - dataQ[Fe,t] - virtualQ[Fe,t]) \
                            +P_R[m,0]*(batterCapacity - enQ[De,t]) + P_T*(batterCapacity - enQ[Fe,t]))
+                # if m == 4 or m == 8 or m == 11 or m == 13:
+                #     wEdge[m]  = 0
 
         # 权重小于 0的结点将不被分配信道
         wEdge = np.where(wEdge < 0, 0, wEdge)
