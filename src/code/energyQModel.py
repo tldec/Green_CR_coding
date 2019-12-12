@@ -5,18 +5,19 @@ import numpy as np
 from code.config import *
 def computeEnHar(enQ,batterCapacity,t):
     enGenVec = np.random.uniform(0, 1, (numOfN, 1)) * EH_max * tau
-    enHarVec = np.zeros_like(enGenVec)
-    tmp = (batterCapacity - enQ[:,t]).reshape(numOfN,1) - enGenVec
-    harMax = np.where(tmp <0)
-    harRest = np.where(tmp >=0)
-    enHarVec[harMax] = enGenVec[harMax]
-    enHarVec[harRest] = tmp[harRest]
-    # for i in range(numOfN):
-    #     # 从环境中获取的能量 超过剩余电池空间
-    #     if enGenVec[i] + enQ[i, t] > batterCapacity:
-    #         enHarVec[i] = max(batterCapacity - enQ[i, t], 0)
-    #     else:
-    #         enHarVec[i] = enGenVec[i]
+    enHarVec = enGenVec.copy()
+    for n in range(numOfN):
+        restCapacity = batterCapacity - enQ[n,t]
+        # print(restCapacity)
+        if restCapacity < 0:
+            enHarVec[n] = 0
+        else:
+            if restCapacity < enGenVec[n]:
+                enHarVec[n] = enGenVec[n]
+            else:
+                enHarVec[n] = restCapacity
+
+    # print("enGenVec\n",enGenVec)
     return enHarVec
 
 def updateEnQ(enQ,enHarVec,enConVec,batterCapacity,t):

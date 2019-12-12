@@ -12,28 +12,15 @@ def computeDataHar(dataQ,enQ,flowQ,batterCapacity,t):
     harMax = np.where(tmp <= 0)
     dataHarVec[stopHarvest] = 0
     dataHarVec[harMax] = dataArrival_max
-    # for n in range(numOfN):
-    #     if (n!=0):
-    #         tmp = -dataQ[n,t]+(batterCapacity-enQ[n,t])*P_H
-    #         harVal = weight/tmp -1
-    #         print("harVal =", harVal+1)
-    #             # dataHarVec[n] = inf
-    #         # print("harVal:",harVal)
-    #         if harVal < 0:
-    #             dataHarVec[n] = 0
-    #         elif harVal < dataArrival_max:
-    #             dataHarVec[n] = harVal
-    #         else:
-    #             dataHarVec[n] = dataArrival_max
+    # print("dataHar:\n",dataHarVec)
     return dataHarVec
 
 def computeTransRecv(caResults,links,dist,chCapacity,dataQ,t):
     # 对应位置元素相乘，计算链路流量
-    print("CA:",caResults)
-    print("CHCAP:",chCapacity)
-    
+    # print("CA:",caResults)
+    # print("CHCAP:",chCapacity)
     tmp = caResults * chCapacity
-    print("tmp:",tmp)
+    # print("tmp:",tmp)
     chOfLink = np.sum
     dataTransVec  = np.zeros(numOfN)
     dataRecvVec = np.zeros_like(dataTransVec)
@@ -54,23 +41,30 @@ def computeTransRecv(caResults,links,dist,chCapacity,dataQ,t):
                         dataRecvVec[De] = val
     return dataTransVec,dataRecvVec
 
-def computeDrop(virtualQ,dataQ,weight,dropMax,t):
+def computeDrop(virtualQ,dataQ,dataTransVec,weight,dropMax,t):
     dataDropVec = np.zeros((numOfN,1))
-    tmp = weight * beta * maxSlop - virtualQ[:, t] + dataQ[:,t]
-
-    stopDrop = np.where(tmp > 0)
-    drop = np.where(tmp <= 0)
-    dataDropVec[stopDrop] = 0
-    dataDropVec[drop] = dropMax
-    dropAll = np.where(dataQ[:,t]<dropMax)
-    dataDropVec[dropAll] = dataQ[:,t].reshape(numOfN,1)[dropAll]
-    # for n in range(numOfN):
-    #     if (n!=0):
-    #         if weight * beta * maxSlop > virtualQ[n, t] + dataQ[n, t]:
-    #             dataDropVec[n] = 0
-    #         else:
-    #             dataDropVec[n] = dropMax
-    print("computeDrop()->dataDropVec:\n", dataDropVec)
+    for n in range(numOfN):
+        tmp = weight * beta * maxSlop - virtualQ[n, t] - dataQ[n,t]
+        if tmp > 0 :
+            dataDropVec[n] = 0
+        else:
+            if dataQ[n,t] - dataTransVec[n] > dataArrival_max:
+                dataDropVec[n] = dataArrival_max
+            else:
+                dataDropVec[n] = dataQ[n,t] - dataTransVec[n]
+    # tmp = weight * beta * maxSlop - virtualQ[:, t] - dataQ[:,t]
+    # # 需要丢弃数据的结点
+    # drop = np.where(tmp <= 0)
+    # # 以最大速度丢弃数据
+    # dataDropVec[drop] = dropMax
+    # # 如果当前数据队列长度小于 dropMax 则将数据队列中的所有数据全部丢弃
+    # dropAll = np.where(dataQ[:, t][drop] < dataDropVec[drop])
+    # dataDropVec[dropAll] = dataQ[:, t].reshape(numOfN, 1)[dropAll]
+    #
+    # # 不需要丢弃数据的结点
+    # stopDrop = np.where(tmp > 0)
+    # dataDropVec[stopDrop] = 0
+    # print("computeDrop()->dataDropVec:\n", dataDropVec)
     return dataDropVec
 
 def updateDataQ(dataQ,dataHarVec,dataTransVec,dataRecvVec,dataDropVec,t):
