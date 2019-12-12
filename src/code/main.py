@@ -156,10 +156,11 @@ def main():
     for e in range(len(epsilons)):
         plt.title(s)
         # print(aveUtility)
-        s = "{0} {1}".format("e = ", epsilons[e])
-        plt.plot(epsilons, aveUtility, c=colorList[e],linestyle = '-', marker = 's',label=s)
+        l = "{0} {1}".format("e = ", epsilons[e])
+        plt.plot(weights, aveUtility[:,e], c=colorList[e],linestyle = '-', marker = 's',label=l)
         plt.xlabel("Value of Weights")
         plt.ylabel("Value of Utility")
+        plt.legend()
     plt.show()
 
 if '__main__' == __name__:
