@@ -9,15 +9,19 @@ from code.energyQModel import *
 from code.dataQModel import *
 from code.virtualQModel import *
 from code.channelAllocationModel import *
+import matplotlib.pyplot as plt
+
 # 初始化结点能量队列
 enQ = np.zeros((numOfN, timeSlots))
 # 初始化结点数据队列
 dataQ = np.zeros_like(enQ)
 # 初始化结点虚拟队列
 virtualQ = np.zeros_like(enQ)
+# 结点流队列
+flowQ = np.zeros_like(enQ)
 # 初始化每个结点的网络效益
 # sum_{n:N} f(h_n - d_n)
-utility = np.zeros((numOfN, timeSlots))
+utility = np.zeros((timeSlots))
 # 平均网络效益-权重
 aveUtility = np.zeros((len(weights)))
 # 记录每个时隙结点发送的数据
@@ -64,18 +68,26 @@ def main():
         epsilon = epsilons[e]
         for w in range((len(weights))):
             weight = weights[w]
+            for n in range(numOfN):
+                enQ[n, 0] = enQ_max[w]*0.75
             for t in range(timeSlots-1):
                 chState = np.random.choice(access, (numOfCH, 1), p)
                 channelCapacity =weights* np.log2(1 + P_T * (np.random.rand(numOfL, numOfCH) + 0.5) / \
                                                 ((distOfLink ** 2) * noise)) * chState.T
                 # print(channelCapacity)
+
                 enHarVec = computeEnHar(enQ, enQ_max, t)
                 enHarM[:, t] = enHarVec.T
-                dataHarVec = computeDataHar(dataQ,enQ,enQ_max[w],weight,t)
+                # computeDataHar(dataQ, enQ, flowQ, batterCapacity, t):
+                dataHarVec = computeDataHar(dataQ,enQ,flowQ,enQ_max[w],t)
+                print("dataHarVec:\n",dataHarVec)
                 # print("Edge:",Edge)
-                caResults = channelAllocation(Edge,enQ,dataQ,virtualQ,link,channelCapacity,enQ_max[w],P_R,t)
-                print("caResult:\n",caResults)
-                dataTransVec,dataRecvVec = computeTransRecv(caResults,link,dist,channelCapacity)
+                caResults = channelAllocation(Edge,enQ,dataQ,virtualQ,link,channelCapacity,enQ_max[w],P_R,chState,t)
+                if (np.sum(caResults) >0):
+                    print("t",t,"caResult:\n",caResults)
+                else:
+                    print("t", t)
+                dataTransVec,dataRecvVec = computeTransRecv(caResults,link,dist,channelCapacity,dataQ,t)
                 dataDropVec = computeDrop(virtualQ,dataQ,weight,dropMax,t)
                 enConVec = computeEnConsumption(caResults,link,distOfLink,dataHarVec)
                 updateEnQ(enQ,enHarVec,enConVec,enQ_max[w],t)
@@ -84,8 +96,15 @@ def main():
                 # print("np.sum(dataHarVec[1:]:",np.sum(dataHarVec[1:]))
                 utility[t] = np.log(1+np.sum(dataHarVec[1:]))-weight*beta*maxSlop*np.sum(dataDropVec[1:])
                 aveUtility[w] = np.sum(utility)/timeSlots
+                # print()
+    print("enQ_max",enQ_max)
+    plt.plot(range(timeSlots),enQ[2],color='red')
+    plt.show()
+    plt.plot(range(timeSlots), dataQ[2], color='blue')
+    plt.show()
 if '__main__' == __name__:
     main()
+
 
 
 
