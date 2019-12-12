@@ -15,12 +15,12 @@ import random
 
 # 初始化结点能量队列
 enQ = np.zeros((numOfN, timeSlots))
-enQw = np.zeros((numOfN,timeSlots,len(weights)))
-dataQw = np.zeros_like(enQw)
-virtualQw = np.zeros((numOfN,timeSlots,len(weights)))
+enQe = np.zeros((numOfN,timeSlots,len(epsilons)))
+dataQe = np.zeros_like(enQe)
+virtualQe = np.zeros((numOfN,timeSlots,len(epsilons)))
 flowQ = np.zeros((timeSlots))
 # flowQ = np.zeros_like((enQ))
-flowQw = np.zeros((timeSlots,len(weights)))
+flowQe = np.zeros((timeSlots,len(epsilons)))
 # flowW = np.zeros_like(flowQw)
 # flowQw = np.zeros((numOfN,timeSlots,len(weights)))
 # 初始化结点数据队列
@@ -33,7 +33,7 @@ virtualQ = np.zeros_like(enQ)
 # sum_{n:N} f(h_n - d_n)
 utility = np.zeros((numOfN,timeSlots))
 # 平均网络效益-权重
-aveUtility = np.zeros((len(weights)))
+aveUtility = np.zeros((len(epsilons)))
 # 记录每个时隙结点发送的数据
 dataTransM = np.zeros((numOfN, timeSlots))
 # 记录每个时隙结点接收的数据
@@ -114,43 +114,43 @@ def main():
             # print("aveHar",aveHar)
             # print("aveDrop", aveDrop)
             aveUtility[w] = np.sum(np.log(epsilon+aveHar - aveDrop))
-            enQw[:,:,w] = enQ
-            dataQw[:,:,w] = dataQ
+            # enQw[:,:,e] = enQ
+            dataQe[:,:,e] = dataQ
             # 只使用一个流队列
-            flowQw[:,w] = flowQ.reshape((flowQw[:,w].shape))
-            virtualQw[:,:,w] = virtualQ
-            print("w =",weight,"aveUtility =",aveUtility[w])
-    np.savetxt('E:\\utility.csv', aveUtility, delimiter=',')
+            # flowQw[:,w] = flowQ.reshape((flowQw[:,w].shape))
+            virtualQe[:,:,e] = virtualQ
+            print("e =",epsilons[e],"aveUtility =",aveUtility[e])
+    np.savetxt('E:\\utilityEpsilon.csv', aveUtility, delimiter=',')
 
 
 
-    for w in range(len(weights)):
-        plt.title('Energy Queue')
-        s = "{0} {1}".format("V = ", weights[w])
-        plt.plot(range(timeSlots), enQw[10,:,w], c=randomcolor(), label=s)
-        plt.legend()  # 显示图例
-    plt.show()
-    for w in range(len(weights)):
+    # for w in range(len(weights)):
+    #     plt.title('Energy Queue')
+    #     s = "{0} {1}".format("V = ", weights[w])
+    #     plt.plot(range(timeSlots), enQw[10,:,w], c=randomcolor(), label=s)
+    #     plt.legend()  # 显示图例
+    # plt.show()
+    for e in range(len(epsilons)):
         plt.title('Data Queue')
-        s = "{0} {1}".format("V = ", weights[w])
-        plt.plot(range(timeSlots), dataQw[10,:,w], c=randomcolor(), label=s)
+        s = "{0} {1}".format("e = ", epsilons[e])
+        plt.plot(range(timeSlots), dataQe[10,:,e], c=randomcolor(), label=s)
         plt.legend()  # 显示图例
     plt.show()
     for w in range(len(weights)):
         plt.title('Virtual Queue')
-        s = "{0} {1}".format("V = ", weights[w])
+        s = "{0} {1}".format("e = ", weights[w])
         # s = "V = %d." % (weights[w])
-        plt.plot(range(timeSlots), virtualQw[10,:,w], c=randomcolor(), label=s)
+        plt.plot(range(timeSlots), virtualQe[10,:,e], c=randomcolor(), label=s)
         plt.legend()  # 显示图例
     plt.show()
     # 共用一个流队列
-    for w in range(len(weights)):
-        plt.title('Flow Queue')
-        s = "{0} {1}".format("V = ", weights[w])
-        plt.plot(range(timeSlots), flowQw[:,w], c=randomcolor(), label=s)
-        plt.legend()  # 显示图例
-    plt.show()
-    plt.plot(weights, aveUtility, color='green',linestyle = '-', marker = 's')
+    # for w in range(len(weights)):
+    #     plt.title('Flow Queue')
+    #     s = "{0} {1}".format("V = ", weights[w])
+    #     plt.plot(range(timeSlots), flowQw[:,w], c=randomcolor(), label=s)
+    #     plt.legend()  # 显示图例
+    # plt.show()
+    plt.plot(epsilons, aveUtility, color='green',linestyle = '-', marker = 's')
     plt.legend(title="utility")
     plt.show()
 
