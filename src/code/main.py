@@ -33,7 +33,7 @@ virtualQ = np.zeros_like(enQ)
 # sum_{n:N} f(h_n - d_n)
 utility = np.zeros((numOfN,timeSlots))
 # 平均网络效益-权重
-aveUtility = np.zeros((len(epsilons)))
+aveUtility = np.zeros((len(weights),len(epsilons)))
 # 记录每个时隙结点发送的数据
 dataTransM = np.zeros((numOfN, timeSlots))
 # 记录每个时隙结点接收的数据
@@ -74,16 +74,23 @@ def randomcolor():
 def main():
     chMax = bandWidth*np.log2(1 + P_T * 1.5) / ((minDist ** 2) * noise)/1000
     print("chMax",chMax)
-    flowQ_max = weights * maxSlop  + dataArrival_max
+    colorList = []
     for e in range(len(epsilons)):
-        epsilon = epsilons[e]
-        dropMax[e] = max(epsilon,(dataArrival_max + chMax))
-    W_1 = (chMax/P_T)*(weights * beta * maxSlop + epsilons + weights * maxSlop + chMax+2*dataArrival_max)
-    W_2 = (1/ P_H) * (weights  * maxSlop + dataArrival_max+chMax)
-    enQ_max = np.where(W_1 > W_2, W_1, W_2)
+        colorList.append(randomcolor())
+    flowQ_max = weights * maxSlop  + dataArrival_max
+    # for e in range(len(epsilons)):
+    #     epsilon = epsilons[e]
+    #     dropMax[e] = max(epsilon,(dataArrival_max + chMax))
+    # W_1 = (chMax/P_T)*(weights * beta * maxSlop + epsilons + weights * maxSlop + chMax+2*dataArrival_max)
+    # W_2 = (1/ P_H) * (weights  * maxSlop + dataArrival_max+chMax)
+    # enQ_max = np.where(W_1 > W_2, W_1, W_2)
 
     for e in range(len(epsilons)):
         epsilon = epsilons[e]
+        dropMax[e] = max(epsilon, (dataArrival_max + chMax))
+        W_1 = (chMax / P_T) * (weights * beta * maxSlop + epsilons[e] + weights * maxSlop + chMax + 2 * dataArrival_max)
+        W_2 = (1 / P_H) * (weights * maxSlop + dataArrival_max + chMax)
+        enQ_max = np.where(W_1 > W_2, W_1, W_2)
         for w in range((len(weights))):
             weight = weights[w]
             for n in range(numOfN):
@@ -113,36 +120,31 @@ def main():
             aveDrop = np.average(dataDropM[1:, :], axis=1)
             # print("aveHar",aveHar)
             # print("aveDrop", aveDrop)
-            aveUtility[w] = np.sum(np.log(epsilon+aveHar - aveDrop))
+            aveUtility[w,e] = np.sum(np.log(1+aveHar - aveDrop))
             # enQw[:,:,e] = enQ
             dataQe[:,:,e] = dataQ
             # 只使用一个流队列
             # flowQw[:,w] = flowQ.reshape((flowQw[:,w].shape))
             virtualQe[:,:,e] = virtualQ
-            print("e =",epsilons[e],"aveUtility =",aveUtility[e])
+            print("e =",epsilons[e],"w = ",weights[w],"aveUtility =",aveUtility[w][e])
     np.savetxt('E:\\utilityEpsilon.csv', aveUtility, delimiter=',')
 
 
-
-    # for w in range(len(weights)):
-    #     plt.title('Energy Queue')
-    #     s = "{0} {1}".format("V = ", weights[w])
-    #     plt.plot(range(timeSlots), enQw[10,:,w], c=randomcolor(), label=s)
+    # 数据队列与epsilon
+    # for e in range(len(epsilons)):
+    #     plt.title('Data Queue')
+    #     s = "{0} {1}".format("e = ", epsilons[e])
+    #     plt.plot(range(timeSlots), dataQe[10,:,e], c=colorList[e], label=s)
     #     plt.legend()  # 显示图例
     # plt.show()
-    for e in range(len(epsilons)):
-        plt.title('Data Queue')
-        s = "{0} {1}".format("e = ", epsilons[e])
-        plt.plot(range(timeSlots), dataQe[10,:,e], c=randomcolor(), label=s)
-        plt.legend()  # 显示图例
-    plt.show()
-    for w in range(len(weights)):
-        plt.title('Virtual Queue')
-        s = "{0} {1}".format("e = ", weights[w])
-        # s = "V = %d." % (weights[w])
-        plt.plot(range(timeSlots), virtualQe[10,:,e], c=randomcolor(), label=s)
-        plt.legend()  # 显示图例
-    plt.show()
+    # 虚拟队列与epsilon
+    # for e in range(len(epsilons)):
+    #     plt.title('Virtual Queue')
+    #     s = "{0} {1}".format("e = ", epsilons[e])
+    #     # s = "V = %d." % (weights[w])
+    #     plt.plot(range(timeSlots), virtualQe[10,:,e], c=colorList[e], label=s)
+    #     plt.legend()  # 显示图例
+    # plt.show()
     # 共用一个流队列
     # for w in range(len(weights)):
     #     plt.title('Flow Queue')
@@ -150,8 +152,14 @@ def main():
     #     plt.plot(range(timeSlots), flowQw[:,w], c=randomcolor(), label=s)
     #     plt.legend()  # 显示图例
     # plt.show()
-    plt.plot(epsilons, aveUtility, color='green',linestyle = '-', marker = 's')
-    plt.legend(title="utility")
+    s = "Utility-V(epsilon from %.1f to %.1f) " %(epsilons[0],epsilons[len(epsilons)-1])
+    for e in range(len(epsilons)):
+        plt.title(s)
+        # print(aveUtility)
+        s = "{0} {1}".format("e = ", epsilons[e])
+        plt.plot(epsilons, aveUtility, c=colorList[e],linestyle = '-', marker = 's',label=s)
+        plt.xlabel("Value of Weights")
+        plt.ylabel("Value of Utility")
     plt.show()
 
 if '__main__' == __name__:
