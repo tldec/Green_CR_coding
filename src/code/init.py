@@ -1,9 +1,10 @@
-#_*_coding:utf-8_*_
+# _*_coding:utf-8_*_
 # author    :tldec_(tanlongs4w@gmail.com)
 # date      :2019/12/9 15:31
 import numpy as np
 from code.config import *
 from math import inf
+
 # 结点分布
 nodeDistribution = np.loadtxt('../resources/node_distribution.csv', delimiter=',')
 # 链路
@@ -42,6 +43,3 @@ for i in range(numOfL):
         if distance < radius:
             Edge[i, j] = 1
             Edge[j, i] = 1
-
-
-
