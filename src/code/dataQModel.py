@@ -17,16 +17,29 @@ def computeDataHar(dataQ, enQ, flowQ, batterCapacity, t):
     dataHarVec[harMax] = dataGenVec[harMax]
     # print("dataHar:\n",dataHarVec)
     return dataHarVec
+def computeDataHarGreedy(dataQ, enQ, flowQ, batterCapacity,dataQ_max,t):
+    dataGenVec = np.random.uniform(0, 1, (numOfN, 1)) * dataArrival_max
+    dataHarVec = dataGenVec.copy()
+    hasEnoughPower = np.where(enQ[:,t] >= P_max)
+    lackOfPower = np.where(enQ[:,t] < P_max)
+    dataHarVec[lackOfPower] = 0
+    for v in hasEnoughPower[0]:
+        dataHarVec[v] = min(dataQ_max - dataQ[v,t],dataHarVec[v])
+    # dataHarVec[hasEnoughPower][noEnoughBuffer] = dataQ_max - dataHarVec[hasEnoughPower] + dataQ[hasEnoughPower]
+    # print("computeDataHar()->tmp:\n",tmp)
+    return dataHarVec
 
 
 def computeDataHarWithSingleFlowQ(dataQ, enQ, flowQ, batterCapacity, t):
     dataGenVec = np.random.uniform(0, 1, (numOfN, 1)) * dataArrival_max
     dataHarVec = np.zeros((numOfN, 1))
-    tmp = P_H * (batterCapacity - enQ[:, t]) + dataQ[:, t] - flowQ[t]
+    # print("flotQ:",flowQ[t])
+    tmp = P_H * (batterCapacity - enQ[:, t]) + dataQ[:, t].reshape(enQ[:, t].shape) - flowQ[t]
     # print("computeDataHar()->tmp:\n",tmp)
     stopHarvest = np.where(tmp >= 0)
     harMax = np.where(tmp < 0)
-    dataHarVec[stopHarvest] = 0
+    if len(stopHarvest) > 0:
+        dataHarVec[stopHarvest] = 0
     dataHarVec[harMax] = dataGenVec[harMax]
     # print("dataHar:\n",dataHarVec)
     return dataHarVec
@@ -66,10 +79,19 @@ def computeDrop(virtualQ, dataQ, dataTransVec, weight, dropMax, t):
         if tmp > 0:
             dataDropVec[n] = 0
         else:
-            if dataQ[n, t] - dataTransVec[n] > dataArrival_max:
-                dataDropVec[n] = dataArrival_max
+            if dataQ[n, t] - dataTransVec[n] > dropMax:
+                dataDropVec[n] = dropMax
             else:
                 dataDropVec[n] = dataQ[n, t] - dataTransVec[n]
+    return dataDropVec
+
+def computeDropRandom(virtualQ, dataQ, dataTransVec, weight, dropMax, t):
+    dataDropVec = np.zeros((numOfN, 1))* dropMax
+    for n in range(numOfN):
+        if dataQ[n,t] == 0:
+            dataDropVec[n] = 0
+        else:
+            dataDropVec[n] = min( dataQ[n, t] - dataTransVec[n],dataDropVec[n])
     return dataDropVec
 
 def updateDataQ(dataQ, dataHarVec, dataTransVec, dataRecvVec, dataDropVec, t):
