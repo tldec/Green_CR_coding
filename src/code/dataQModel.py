@@ -72,7 +72,6 @@ def computeDrop(virtualQ, dataQ, dataTransVec, weight, dropMax, t):
                 dataDropVec[n] = dataQ[n, t] - dataTransVec[n]
     return dataDropVec
 
-
 def updateDataQ(dataQ, dataHarVec, dataTransVec, dataRecvVec, dataDropVec, t):
     dataHarVec = dataHarVec.reshape(dataQ[:, t].shape)
     dataTransVec = dataTransVec.reshape(dataQ[:, t].shape)

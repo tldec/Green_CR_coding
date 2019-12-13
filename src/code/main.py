@@ -172,28 +172,10 @@ def main():
                   aveUtility[w][1])
     np.savetxt('E:\\utilityCompare.csv', aveUtility, delimiter=',')
 
-    # # 数据队列与epsilon
-    # for e in range(len(epsilons)):
-    #     plt.title('Data Queue')
-    #     s = "{0} {1}".format("e = ", epsilons[e])
-    #     plt.plot(range(timeSlots), dataQRA[10,:,e], c=colorList[e], label=s)
-    #     plt.legend()  # 显示图例
-    # plt.show()
-    # # 虚拟队列与epsilon
-    # for e in range(len(epsilons)):
-    #     plt.title('Virtual Queue')
-    #     s = "{0} {1}".format("e = ", epsilons[e])
-    #     # s = "V = %d." % (weights[w])
-    #     plt.plot(range(timeSlots), virtualQRA[10,:,e], c=colorList[e], label=s)
-    #     plt.legend()  # 显示图例
-    # plt.show()
-    # # 共用一个流队列
-    # for w in range(len(weights)):
-    #     plt.title('Flow Queue')
-    #     s = "{0} {1}".format("V = ", weights[w])
-    #     plt.plot(range(timeSlots), flowQRA[:,w], c=randomcolor(), label=s)
-    #     plt.legend()  # 显示图例
-    # plt.show()
+
+    plotPoleUtility(aveUtility)
+
+def plotLineUtility(utilityVal):
     s = "Utility-V compare "
     plt.title(s)
     # print(aveUtility)
@@ -204,29 +186,21 @@ def main():
     plt.legend()
     plt.show()
 
-
-def plotUtility(utilityVal):
+def plotPoleUtility(utilityVal):
     bar_width = 0.3
+    # X 轴 变量
     x1 = np.array(range(len(weights)))
-    x2 = np.array(range(len(weights))) + bar_width
     plt.bar(x=x1, height=utilityVal[:, 0], label='K-MWIS',
             color='blue', alpha=0.8, width=bar_width)
+    x2 = np.array(range(len(weights))) + bar_width
     plt.bar(x=x2, height=utilityVal[:, 1], label='Random Algrithm',
             color='red', alpha=0.8, width=bar_width)
     plt.title("Utility Comparation Under Different Algrithm")
-
-    # 将X轴数据改为使用np.arange(len(x_data))+bar_width,
-    # 就是bar_width、1+bar_width、2+bar_width...这样就和第一个柱状图并列了
-
-    # 为两条坐标轴设置名称
     plt.xlabel("Value of Weights")
     plt.ylabel("Value of Utility")
     # 显示图例
     plt.legend()
     plt.show()
-
-
 if '__main__' == __name__:
     main()
-    # U = np.loadtxt('E:\\utilityCompare.csv', delimiter=',')
-    # plotUtility(U)
+
