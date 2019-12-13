@@ -18,7 +18,9 @@ def computeEnHar(enQ,batterCapacity,t):
     return enHarVec
 
 def updateEnQ(enQ,enHarVec,enConVec,batterCapacity,t):
-    enQ[:,t+1] = enQ[:,t].T -enConVec.T + enHarVec.T
+    enHarVec = enHarVec.reshape(enQ[:,t].shape)
+    enConVec = enConVec.reshape(enQ[:,t].shape)
+    enQ[:,t+1] = enQ[:,t] -enConVec + enHarVec
     enQ[0,t+1] = batterCapacity
 
 def computeEnConsumption(caResult,links,dist,dataHarVec):

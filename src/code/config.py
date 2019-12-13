@@ -1,6 +1,6 @@
 import  numpy as np
-# epsilons=np.array([0.8])
-epsilons=np.array(range(6,13,2))/10
+epsilons=np.array([0.8])
+# epsilons=np.array(range(6,13,2))/10
 timeSlots=3000
 # 单位 秒(s)
 tau=60
@@ -25,7 +25,7 @@ numOfL=14
 numOfN=15
 numOfCH=4
 # weights=np.array([800])
-weights=np.array(range(550,800,50))
+weights=np.array(range(200,1300,100))
 maxSlop = 1
 beta = 1
 noise = 1e-5
