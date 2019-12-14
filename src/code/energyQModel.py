@@ -23,7 +23,11 @@ def computeEnHar(enQ, batterCapacity, t):
 def updateEnQ(enQ, enHarVec, enConVec, batterCapacity, t):
     enHarVec = enHarVec.reshape(enQ[:, t].shape)
     enConVec = enConVec.reshape(enQ[:, t].shape)
-    enQ[:, t + 1] = enQ[:, t] - enConVec + enHarVec
+    for n in range(numOfN):
+        if enQ[n,t] - enConVec[n] <= 0:
+            enQ[n,t+1] = enHarVec[n]
+        else:
+            enQ[n, t + 1] = enQ[n,t] - enConVec[n] + enHarVec[n]
     enQ[0, t + 1] = batterCapacity
 
 
@@ -35,8 +39,8 @@ def computeEnConsumption(caResult, links, dist, dataHarVec):
         if (np.sum(caResult[m, :])) == 1:
             for k in range(numOfCH):
                 if (caResult[m, k] == 1):
-                    enConsVec[Fe] = P_T + P_H * dataHarVec[m]
-                    enConsVec[De] = para / dist[m] + P_H * dataHarVec[m]
+                    enConsVec[Fe] = P_T *tau*0.6+ P_H * dataHarVec[m]
+                    enConsVec[De] = para / dist[m] *tau*0.6 + P_H * dataHarVec[m]
                 else:
                     enConsVec[Fe] = P_H * dataHarVec[m]
                     enConsVec[De] = P_H * dataHarVec[m]

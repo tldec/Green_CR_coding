@@ -48,7 +48,7 @@ def computeDataHarWithSingleFlowQ(dataQ, enQ, flowQ, batterCapacity, t):
 def computeTransRecv(caResults, links, dist, chCapacity, dataQ, t):
     # 对应位置元素相乘，计算链路流量
     # print("CA:",caResults)
-    # print("CHCAP:",chCapacity)
+    # print("CHCAP.shape:",chCapacity.shape)
     tmp = caResults * chCapacity
     # print("tmp:",tmp)
     chOfLink = np.sum

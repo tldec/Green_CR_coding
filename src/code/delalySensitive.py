@@ -1,6 +1,6 @@
-# _*_coding:utf-8_*_
+#_*_coding:utf-8_*_
 # author    :tldec_(tanlongs4w@gmail.com)
-# date      :2019/12/6 20:31
+# date      :2019/12/14 19:50
 from math import inf
 from code.config import *
 from code.Graph import Graph
@@ -10,13 +10,9 @@ from code.dataQModel import *
 from code.virtualQModel import *
 from code.channelAllocationModel import *
 from code.flowQModel import *
-from code.greedy import greedy
-from code.delalySensitive import delaySensitive
-from code.randomAllocation import  randomAllocation
 import matplotlib.pyplot as plt
 import random
 import code.greedy as gd
-from code.plot import *
 # 初始化结点能量队列
 enQ = np.zeros((numOfN, timeSlots))
 enQw = np.zeros((numOfN, timeSlots, len(weights)))
@@ -44,8 +40,6 @@ dataHarM = np.zeros_like(dataTransM)
 numofCA = np.zeros((timeSlots, len(weights)))
 # 记录每个结点丢弃的数据
 dataDropM = np.zeros_like(dataTransM)
-state = np.zeros((numOfCH, 1, timeSlots, len(weights)))
-chCap = np.zeros((numOfL, numOfCH, timeSlots, len(weights)))
 # 记录每个结点采集的能量
 enHarM = np.zeros_like(dataTransM)
 # 记录每个结点消耗的能量
@@ -72,9 +66,15 @@ maxP_R = np.max(P_R)
 P_max = max(P_T * tau * 0.6, maxP_R * tau * 0.6) + P_H * dataArrival_max
 
 
+def randomcolor():
+    colorArr = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
+    color = ""
+    for i in range(6):
+        color += colorArr[random.randint(0, 14)]
+    return "#" + color
 
-
-def K_MWIS():
+def delaySensitive(chCap,state):
+    print("delay-sensitive begins\n")
     chMax = bandWidth * np.log2(1 + P_T * 1.5) / ((minDist ** 2) * noise) / 1000
     print("chMax", chMax)
     colorList = []
@@ -94,18 +94,20 @@ def K_MWIS():
                 enQ[n, 0] = enQ_max[w] * initCapacityRate
 
             for t in range(timeSlots - 1):
-                chState = np.random.choice(access, (numOfCH, 1), p)
-                channelCapacity = bandWidth * (weight / 1000) * np.log2(
-                    1 + P_T * (np.random.rand(numOfL, numOfCH) + 0.5) / \
-                    ((distOfLink ** 2) * noise)) * chState.T
-                state[:, :, t, w] = chState.reshape(state[:, :, t, w].shape)
-                chCap[:, :, t, w] = channelCapacity.reshape(chCap[:, :, t, w].shape)
+                chState = state[:, :, t, w]
+                channelCapacity = chCap[:, :, t, w]
+                # chState = np.random.choice(access, (numOfCH, 1), p)
+                # channelCapacity = bandWidth * (weight / 1000) * np.log2(
+                #     1 + P_T * (np.random.rand(numOfL, numOfCH) + 0.5) / \
+                #     ((distOfLink ** 2) * noise)) * chState.T
+                # state[:, :, t, w] = chState.reshape(state[:, :, t, w].shape)
+                # chCap[:, :, t, w] = channelCapacity.reshape(chCap[:, :, t, w].shape)
                 enHarVec = computeEnHar(enQ, enQ_max[w], t)
                 enHarM[:, t] = enHarVec.T
                 dataHarVec = computeDataHarWithSingleFlowQ(dataQ, enQ, flowQ, enQ_max[w], t)
                 dataHarM[:, t] = dataHarVec.T
                 caResults = channelAllocation(Edge, enQ, dataQ, virtualQ, link, channelCapacity, enQ_max[w], P_R,
-                                              chState, P_max, "KMWIS", t)
+                                              chState, P_max, "dmb", t)
                 numofCA[t, w] = np.sum(caResults)
                 dataTransVec, dataRecvVec = computeTransRecv(caResults, link, dist, channelCapacity, dataQ, t)
                 trafficOverSlot[t, w] = np.sum(dataTransVec[1:])
@@ -138,37 +140,15 @@ def K_MWIS():
             # print("aveDrop", aveDrop)
             # aveUtility[w] = np.sum(np.log(1 + aveHar - aveDrop))
             aveUtility[w] = np.sum(np.log(1 + aveHar- aveDrop))
-            enQw[:, :, w] = enQ.reshape((enQw[:,:, w].shape))
-            dataQw[:, :, w] = dataQ.reshape((dataQw[:,:, w].shape))
+            enQw[:, :, w] = enQ.reshape((enQw[:, :, w].shape))
+            dataQw[:, :, w] = dataQ.reshape((dataQw[:, :, w].shape))
             # 只使用一个流队列
-            virtualQw[:, :, w] = virtualQ.reshape((virtualQw[:,:, w].shape))
+            virtualQw[:, :, w] = virtualQ.reshape((virtualQw[:, :, w].shape))
             flowQw[:, w] = flowQ.reshape((flowQw[:, w].shape))
             # print("aveHarRA",aveHarRA,"aveDropRA", aveDropRA)
             # print("aveDrop", aveDropRA)
-            print("w = ", weights[w], "CA :", aveUtility[w])
-    np.savetxt('E:\\utilityCompare_0.csv', aveUtility, delimiter=',')
-    np.savetxt('E:\\trafficOverSlot_0.csv', trafficOverSlot, delimiter=',')
-    np.savetxt('E:\\numOfCA_0.csv', numofCA, delimiter=',')
-    np.savetxt('E:\\dataDrop_0.csv', dropMw, delimiter=',')
-
-    return state, chCap
-
-
-if __name__ == '__main__':
-    S,CHCAP= K_MWIS()
-    greedy(CHCAP,S)
-    randomAllocation(CHCAP,S)
-    delaySensitive(CHCAP,S)
-    algList = ["K-MWIS","Random","Delay-sensitive","Greedy"]
-    # algList = ["K-MWIS"]
-    # 队列对比图
-    plotQw(enQw,flowQw,dataQw,virtualQw)
-#     Utility - V对比图
-    plotCompareUnderWeight("Utility - V Under Different Algrithm","Value of V","Utility",
-                           loadValueTriaxis("E:\\utilityCompare",1,len(weights),1),algList)
-    numofCA = loadValueTriaxis("E:\\numOfCA",1,timeSlots,len(weights))
-    totalNumOfCA = np.sum(numofCA,axis=0)
-
-    plotCompareUnderWeight("Number of Links with Channel Allocated","time","Number of Links",totalNumOfCA,algList )
-
-
+            print("w = ", weights[w], "delaySensitive :", aveUtility[w])
+    np.savetxt('E:\\utilityCompare_2.csv', aveUtility, delimiter=',')
+    np.savetxt('E:\\trafficOverSlot_2.csv', trafficOverSlot, delimiter=',')
+    np.savetxt('E:\\numOfCA_2.csv', numofCA, delimiter=',')
+    np.savetxt('E:\\dataDrop_2.csv', dropMw, delimiter=',')
