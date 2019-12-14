@@ -18,9 +18,6 @@ enQ = np.zeros((numOfN, timeSlots))
 enQw = np.zeros((numOfN,timeSlots,len(weights)))
 dataQw = np.zeros_like(enQw)
 virtualQw = np.zeros((numOfN,timeSlots,len(weights)))
-flowQ = np.zeros((timeSlots))
-# flowQ = np.zeros_like((enQ))
-flowQw = np.zeros((timeSlots,len(weights)))
 # flowW = np.zeros_like(flowQw)
 # flowQw = np.zeros((numOfN,timeSlots,len(weights)))
 # 初始化结点数据队列
@@ -54,7 +51,6 @@ enQ_max = np.zeros(len(weights))
 dataQ_max = np.zeros_like(enQ_max)
 # 虚拟队列上界
 virtualQ_max = np.zeros_like(enQ_max)
-flowQ_max = np.zeros_like(enQ_max)
 # 数据丢弃上限
 dropMax = np.zeros(len(epsilons))
 
@@ -64,6 +60,8 @@ access = [0, 1]
 # 主用户可接入概率
 p = [0.4, 0.6]
 P_R = para/distOfLink
+maxPR = np.max(P_R)
+P_max=max(P_T * tau *0.3,maxPR * tau * 0.3)+P_H * dataArrival_max
 
 def randomcolor():
     colorArr = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
@@ -95,7 +93,7 @@ def main():
                 enHarVec = computeEnHar(enQ, enQ_max[w], t)
                 enHarM[:, t] = enHarVec.T
 
-                dataHarVec = computeDataHarWithSingleFlowQ(dataQ,enQ,flowQ,enQ_max[w],t)
+                dataHarVec = computeDataHar(dataQ,enQ,enQ_max[w],w,t)
                 dataHarM[:,t] = dataHarVec.T
                 caResults = channelAllocation(Edge,enQ,dataQ,virtualQ,link,channelCapacity,enQ_max[w],P_R,chState,t)
                 dataTransVec,dataRecvVec = computeTransRecv(caResults,link,dist,channelCapacity,dataQ,t)
@@ -103,21 +101,32 @@ def main():
                 dataDropVec = computeDrop(virtualQ,dataQ,dataTransVec,weight,dropMax[e],t)
                 dataDropM[:,t] = dataDropVec.T
                 enConVec = computeEnConsumption(caResults,link,distOfLink,dataHarVec)
-                flowInVec = computeFlowInputWithSingleFlowQ(weight, flowQ, t)
-                updateFlowQWithSigleFlowQ(flowQ,flowInVec,dataHarVec,flowQ_max[w],t)
-                # print("flowQ:",flowQ)
+                for n in range(numOfN):
+                    if n != 0:
+                        tmp = dataHarVec[n] - dataDropVec[n] +1
+                        if tmp < 0:
+                            utility[n, t] = 0
+                        else:
+                            if np.log(tmp) < 0:
+                                utility[n,t] = 0
+                            else:
+                                utility[n,t] = np.log(tmp)
+                    else:
+                        utility[0,t] = 0
+
                 updateEnQ(enQ,enHarVec,enConVec,enQ_max[w],t)
                 updateDataQ(dataQ,dataHarVec,dataTransVec,dataRecvVec,dataDropVec,t)
                 updateVirtualQ(virtualQ,dataQ,epsilon,dataTransVec,dataDropVec,chMax,t)
-            aveHar = np.average(dataHarM[1:,:],axis=1)
-            aveDrop = np.average(dataDropM[1:, :], axis=1)
+
+
             # print("aveHar",aveHar)
             # print("aveDrop", aveDrop)
-            aveUtility[w] = np.sum(np.log(epsilon+aveHar - aveDrop))
+            # timeAveUtility = np.sum(utility,axis=1)/timeSlots
+            # print("utility:",timeAveUtility)
+            aveUtility[w] = np.sum(np.average(utility,axis=1))
             enQw[:,:,w] = enQ
             dataQw[:,:,w] = dataQ
             # 只使用一个流队列
-            flowQw[:,w] = flowQ.reshape((flowQw[:,w].shape))
             virtualQw[:,:,w] = virtualQ
             print("w =",weight,"aveUtility =",aveUtility[w])
     np.savetxt('E:\\utility.csv', aveUtility, delimiter=',')
@@ -141,18 +150,17 @@ def main():
         s = "{0} {1}".format("V = ", weights[w])
         # s = "V = %d." % (weights[w])
         plt.plot(range(timeSlots), virtualQw[10,:,w], c=randomcolor(), label=s)
-        plt.legend()  # 显示图例
+        # print(np.average(virtualQw[10,500:,w]))
+    plt.legend()  # 显示图例
     plt.show()
-    # 共用一个流队列
     for w in range(len(weights)):
-        plt.title('Flow Queue')
-        s = "{0} {1}".format("V = ", weights[w])
-        plt.plot(range(timeSlots), flowQw[:,w], c=randomcolor(), label=s)
-        plt.legend()  # 显示图例
+        plt.title('Utility - V')
+        # s = "{0} {1}".format("V = ", weights[w])
+        # s = "V = %d." % (weights[w])
+        plt.plot(weights, aveUtility, c=randomcolor(),linestyle='-',marker='s')
+    plt.legend()  # 显示图例
     plt.show()
-    plt.plot(weights, aveUtility, color='green',linestyle = '-', marker = 's')
-    plt.legend(title="utility")
-    plt.show()
+
 
 if '__main__' == __name__:
     main()
