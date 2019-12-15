@@ -15,7 +15,7 @@ def chooseMaxWeighted(wEdgeDegree):
     return choosen
 
 
-def randomChoose(wEdgeDegree):
+def chooseRandom(wEdgeDegree):
     # 随机选择可分配链路
     nozeros = np.where(wEdgeDegree > 0)[0]
     choosen = 0
@@ -25,6 +25,7 @@ def randomChoose(wEdgeDegree):
         choosen = nozeros[m]
     return choosen
 
+
 def weightK_MWIS(enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max, k,t):
     wEdge = np.zeros((numOfL))
     for m in range(numOfL):
@@ -33,12 +34,13 @@ def weightK_MWIS(enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chStat
         wEdge[m] = -(chCap[m, k] * (dataQ[De, t] - dataQ[Fe, t] - virtualQ[Fe, t]) \
                      + P_R[m, 0] * (batterCapacity - enQ[De, t]) + P_T * (batterCapacity - enQ[Fe, t]))
     return wEdge
-def weightDropMaxBackLog(enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max, k,t):
+
+def weightMaxBackLog(enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max, k,t):
     wEdge = np.zeros((numOfL))
     for m in range(numOfL):
         Fe = links[m, 0]
         De = links[m, 1]
-        wEdge[m] = - (- dataQ[Fe, t])
+        wEdge[m] = dataQ[Fe, t]
         if (enQ[Fe, t] < P_max or enQ[De, t] < P_max):
             wEdge[m] = 0
     return wEdge
@@ -55,130 +57,93 @@ def weightMaxEnergy(enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chS
 
     return wEdge
 
-def channelAllocationDropMaxBacklog(Edge, enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState,P_max, t):
-    caResults = np.zeros((numOfL, numOfCH), dtype=np.int8)
-    # 为每个颜色寻找最大带权独立集
-    for k in range(numOfCH):
-        # 计算每条链路的权重
-        # 原问题为最小化，取相反数后求最大值
-        wEdge = np.zeros((numOfL))
-        if chState[k][0] != 0:
-            wEdge = weightDropMaxBackLog(enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max, k,t)
-            # 权重小于 0的结点将不被分配信道
-            wEdge = np.where(wEdge < 0, 0, wEdge)
-            V = np.ones(numOfL, dtype=np.int8)
-            # 将已经分配信道的链路权重置零
-            hasAllocated = np.where(np.sum(caResults[:, 0:k], 1) == 1)
-            V[hasAllocated] = 0
-            wEdge[hasAllocated] = 0
-            # 为信道 k 初始化带权图
-            G = Graph(V.copy(), Edge.copy(), wEdge.copy())
-            wEdgeDegree = G.wEdge
-            while (np.size(G.V) > 0 and np.sum(wEdgeDegree) > 0):
-                linkHasNoConflict = np.where(G.dList == 0)
-                linkWithConflict = np.where(G.dList > 0)
-                hasDeleted = np.where(G.V == 0)
-                # 如果当前结点度为0，不存在冲突，直接为其分配信道 k
-                wEdgeDegree[linkHasNoConflict] = inf
-                wEdgeDegree[linkWithConflict] = wEdge[linkWithConflict] / (G.dList[linkWithConflict] + 1)
-                wEdgeDegree[hasDeleted] = 0
-                # 为wEdgeDegree中权重最大的结点分配信道 k
-                choosen = chooseMaxWeighted(wEdgeDegree)
-                if np.max(wEdgeDegree) != 0:
-                    # 为链路 choosen 分配信道 k
-                    caResults[choosen, k] = 1
-                    # 删除结点 choosen 以及与其邻接的所有结点
-                    G.coloring(choosen)
-        else:
-            # print("t:",t,"信道",k,"不可用")
-            pass
-    return caResults
-
-def channelAllocationGreedy(Edge, enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState,P_max, t):
-    caResults = np.zeros((numOfL, numOfCH), dtype=np.int8)
-    # 为每个颜色寻找最大带权独立集
-    for k in range(numOfCH):
-        # 计算每条链路的权重
-        # 原问题为最小化，取相反数后求最大值
-        wEdge = np.zeros((numOfL))
-        if chState[k][0] != 0:
-            wEdge = weightMaxEnergy(enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max, k,t)
-            # 权重小于 0的结点将不被分配信道
-            wEdge = np.where(wEdge < 0, 0, wEdge)
-            V = np.ones(numOfL, dtype=np.int8)
-            # 将已经分配信道的链路权重置零
-            hasAllocated = np.where(np.sum(caResults[:, 0:k], 1) == 1)
-            V[hasAllocated] = 0
-            wEdge[hasAllocated] = 0
-            # 为信道 k 初始化带权图
-            G = Graph(V.copy(), Edge.copy(), wEdge.copy())
-            wEdgeDegree = G.wEdge
-            while (np.size(G.V) > 0 and np.sum(wEdgeDegree) > 0):
-                linkHasNoConflict = np.where(G.dList == 0)
-                linkWithConflict = np.where(G.dList > 0)
-                hasDeleted = np.where(G.V == 0)
-                # 如果当前结点度为0，不存在冲突，直接为其分配信道 k
-                wEdgeDegree[linkHasNoConflict] = inf
-                wEdgeDegree[linkWithConflict] = wEdge[linkWithConflict] / (G.dList[linkWithConflict] + 1)
-                wEdgeDegree[hasDeleted] = 0
-                # 为wEdgeDegree中权重最大的结点分配信道 k
-                choosen = chooseMaxWeighted(wEdgeDegree)
-                if np.max(wEdgeDegree) != 0:
-                    # 为链路 choosen 分配信道 k
-                    caResults[choosen, k] = 1
-                    # 删除结点 choosen 以及与其邻接的所有结点
-                    G.coloring(choosen)
-        else:
-            # print("t:",t,"信道",k,"不可用")
-            pass
-    return caResults
-
-
-
+def findMWIS(Edge, enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max,k,alg,caResults, t):
+    # 计算每条链路的权重
+    # 原问题为最小化，取相反数后求最大值
+    wEdge = np.zeros((numOfL))
+    if chState[k][0] != 0:
+        # print(weightMethod[alg])
+        wEdge = weightMethod[alg](enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max, k, t)
+        # 权重小于 0的结点将不被分配信道
+        wEdge = np.where(wEdge < 0, 0, wEdge)
+        V = np.ones(numOfL, dtype=np.int8)
+        # 将已经分配信道的链路权重置零
+        hasAllocated = np.where(np.sum(caResults[:, 0:k], 1) == 1)
+        V[hasAllocated] = 0
+        wEdge[hasAllocated] = 0
+        # 为信道 k 初始化带权图
+        G = Graph(V.copy(), Edge.copy(), wEdge.copy())
+        wEdgeDegree = G.wEdge
+        while (np.size(G.V) > 0 and np.sum(wEdgeDegree) > 0):
+            linkHasNoConflict = np.where(G.dList == 0)
+            linkWithConflict = np.where(G.dList > 0)
+            hasDeleted = np.where(G.V == 0)
+            # 如果当前结点度为0，不存在冲突，直接为其分配信道 k
+            wEdgeDegree[linkHasNoConflict] = inf
+            wEdgeDegree[linkWithConflict] = wEdge[linkWithConflict] / (G.dList[linkWithConflict] + 1)
+            wEdgeDegree[hasDeleted] = 0
+            # 为wEdgeDegree中权重最大的结点分配信道 k
+            choosen = chooseMethod[alg](wEdgeDegree)
+            if np.max(wEdgeDegree) != 0:
+                # 为链路 choosen 分配信道 k
+                caResults[choosen, k] = 1
+                # 删除结点 choosen 以及与其邻接的所有结点
+                G.coloring(choosen)
 
 def channelAllocation(Edge, enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max,alg, t):
     caResults = np.zeros((numOfL, numOfCH), dtype=np.int8)
-    if alg == "greedy":
-        # print("greedy！")
-        caResults = channelAllocationGreedy(Edge, enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R,
-                                                    chState, P_max, t)
-    else:
-        # 为每个颜色寻找最大带权独立集
-        for k in range(numOfCH):
-            # 计算每条链路的权重
-            # 原问题为最小化，取相反数后求最大值
-            wEdge = np.zeros((numOfL))
-            if chState[k][0] != 0:
-                wEdge = weightK_MWIS(enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max,k, t)
-                # 权重小于 0的结点将不被分配信道
-                wEdge = np.where(wEdge < 0, 0, wEdge)
-                V = np.ones(numOfL, dtype=np.int8)
-                # 将已经分配信道的链路权重置零
-                hasAllocated = np.where(np.sum(caResults[:, 0:k], 1) == 1)
-                V[hasAllocated] = 0
-                wEdge[hasAllocated] = 0
-                # 为信道 k 初始化带权图
-                G = Graph(V.copy(), Edge.copy(), wEdge.copy())
-                wEdgeDegree = G.wEdge
-                while (np.size(G.V) > 0 and np.sum(wEdgeDegree) > 0):
-                    linkHasNoConflict = np.where(G.dList == 0)
-                    linkWithConflict = np.where(G.dList > 0)
-                    hasDeleted = np.where(G.V == 0)
-                    # 如果当前结点度为0，不存在冲突，直接为其分配信道 k
-                    wEdgeDegree[linkHasNoConflict] = inf
-                    wEdgeDegree[linkWithConflict] = wEdge[linkWithConflict] / (G.dList[linkWithConflict] + 1)
-                    wEdgeDegree[hasDeleted] = 0
-                    # 为wEdgeDegree中权重最大的结点分配信道 k
-                    choosen = chooseMaxWeighted(wEdgeDegree)
-                    if np.max(wEdgeDegree) != 0:
-                        # 为链路 choosen 分配信道 k
-                        caResults[choosen, k] = 1
-                        # 删除结点 choosen 以及与其邻接的所有结点
-                        G.coloring(choosen)
-            else:
-                # print("t:",t,"信道",k,"不可用")
-                pass
+    for k in range(numOfCH):
+        if chState[k][0] != 0:
+            findMWIS(Edge, enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max,k,alg, caResults,t)
+        else:
+            # print("t:",t,"信道",k,"不可用")
+            pass
     return caResults
 
+# def channelAllocation(Edge, enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max,alg, t):
+#     caResults = np.zeros((numOfL, numOfCH), dtype=np.int8)
+#     if alg == "greedy":
+#         # print("greedy！")
+#         caResults = channelAllocationGreedy(Edge, enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R,
+#                                                     chState, P_max, t)
+#     else:
+#         # 为每个颜色寻找最大带权独立集
+#         for k in range(numOfCH):
+#             # 计算每条链路的权重
+#             # 原问题为最小化，取相反数后求最大值
+#             wEdge = np.zeros((numOfL))
+#             if chState[k][0] != 0:
+#                 wEdge = weightK_MWIS(enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max,k, t)
+#                 # 权重小于 0的结点将不被分配信道
+#                 wEdge = np.where(wEdge < 0, 0, wEdge)
+#                 V = np.ones(numOfL, dtype=np.int8)
+#                 # 将已经分配信道的链路权重置零
+#                 hasAllocated = np.where(np.sum(caResults[:, 0:k], 1) == 1)
+#                 V[hasAllocated] = 0
+#                 wEdge[hasAllocated] = 0
+#                 # 为信道 k 初始化带权图
+#                 G = Graph(V.copy(), Edge.copy(), wEdge.copy())
+#                 wEdgeDegree = G.wEdge
+#                 while (np.size(G.V) > 0 and np.sum(wEdgeDegree) > 0):
+#                     linkHasNoConflict = np.where(G.dList == 0)
+#                     linkWithConflict = np.where(G.dList > 0)
+#                     hasDeleted = np.where(G.V == 0)
+#                     # 如果当前结点度为0，不存在冲突，直接为其分配信道 k
+#                     wEdgeDegree[linkHasNoConflict] = inf
+#                     wEdgeDegree[linkWithConflict] = wEdge[linkWithConflict] / (G.dList[linkWithConflict] + 1)
+#                     wEdgeDegree[hasDeleted] = 0
+#                     # 为wEdgeDegree中权重最大的结点分配信道 k
+#                     choosen = chooseMaxWeighted(wEdgeDegree)
+#                     if np.max(wEdgeDegree) != 0:
+#                         # 为链路 choosen 分配信道 k
+#                         caResults[choosen, k] = 1
+#                         # 删除结点 choosen 以及与其邻接的所有结点
+#                         G.coloring(choosen)
+#             else:
+#                 # print("t:",t,"信道",k,"不可用")
+#                 pass
+#     return caResults
 
-method = {"KMWIS": chooseMaxWeighted, "dmb": channelAllocationDropMaxBacklog, "random": randomChoose}
+
+chooseMethod = {"kmwis": chooseMaxWeighted,  "random": chooseRandom,"delay":chooseMaxWeighted,"greedy":chooseMaxWeighted}
+weightMethod = {"kmwis":weightK_MWIS,"random":weightK_MWIS,"delay":weightMaxBackLog,"greedy":weightMaxEnergy}
