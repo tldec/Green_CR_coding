@@ -10,8 +10,11 @@ from code.dataQModel import *
 from code.virtualQModel import *
 from code.channelAllocationModel import *
 from code.flowQModel import *
+from code.plot import *
 import matplotlib.pyplot as plt
 import random
+
+
 
 # 初始化结点能量队列
 enQ = np.zeros((numOfN, timeSlots))
@@ -63,12 +66,7 @@ P_R = para/distOfLink
 maxPR = np.max(P_R)
 P_max=max(P_T * tau *0.3,maxPR * tau * 0.3)+P_H * dataArrival_max
 
-def randomcolor():
-    colorArr = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
-    color = ""
-    for i in range(6):
-        color += colorArr[random.randint(0, 14)]
-    return "#" + color
+
 def main():
     chMax = bandWidth*np.log2(1 + P_T * 1.5) / ((minDist ** 2) * noise)/1000
     print("chMax",chMax)
@@ -132,38 +130,19 @@ def main():
     np.savetxt('E:\\utility.csv', aveUtility, delimiter=',')
 
 
-
-    for w in range(len(weights)):
-        plt.title('Energy Queue')
-        s = "{0} {1}".format("V = ", weights[w])
-        plt.plot(range(timeSlots), enQw[10,:,w], c=randomcolor(), label=s)
-        plt.legend()  # 显示图例
-    plt.show()
-    for w in range(len(weights)):
-        plt.title('Data Queue')
-        s = "{0} {1}".format("V = ", weights[w])
-        plt.plot(range(timeSlots), dataQw[10,:,w], c=randomcolor(), label=s)
-        plt.legend()  # 显示图例
-    plt.show()
-    for w in range(len(weights)):
-        plt.title('Virtual Queue')
-        s = "{0} {1}".format("V = ", weights[w])
-        # s = "V = %d." % (weights[w])
-        plt.plot(range(timeSlots), virtualQw[10,:,w], c=randomcolor(), label=s)
-        # print(np.average(virtualQw[10,500:,w]))
-    plt.legend()  # 显示图例
-    plt.show()
-    for w in range(len(weights)):
-        plt.title('Utility - V')
-        # s = "{0} {1}".format("V = ", weights[w])
-        # s = "V = %d." % (weights[w])
-        plt.plot(weights, aveUtility, c=randomcolor(),linestyle='-',marker='s')
-    plt.legend()  # 显示图例
-    plt.show()
-
-
 if '__main__' == __name__:
+    enQ_dict = dict({"title":"Energy Queue","para_name":"V","xlabel":"time slots","ylabel":"Energy Queue Length"})
+    dataQ_dict = dict({"title":"Data Queue","para_name":"V","xlabel":"time slots","ylabel":"Data Queue Length"})
+    virtualQ_dict = dict({"title":"Virtual Queue","para_name":"V","xlabel":"time slots","ylabel":"Data Queue Length"})
+    utility_dict = dict({"title":"Utility-V","para_name":"","xlabel":"Value Of V","ylabel":"Sum of Utility"})
     main()
+    aveU = np.loadtxt('E:\\utility.csv', delimiter=',')
+    print(enQw[10,:,:].shape)
+    plotOverSlot(enQw[10,:,:],weights,enQ_dict)
+    plotOverSlot(dataQw[10,:,:],weights,enQ_dict)
+    plotOverSlot(virtualQw[10,:,:],weights,enQ_dict)
+    plotUtilityOverWeights(aveU,None,utility_dict)
+
 
 
 
