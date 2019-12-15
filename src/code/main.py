@@ -190,24 +190,10 @@ if __name__ == '__main__':
 
     plotOverSlot(enQw2[10, :, :], weights, enQ_dict2)
     plotOverSlot(dataQw2[10, :, :], weights, dataQ_dict2)
-    # plotOverSlot(virtualQw2[10, :, :], weights, virtualQ_dict2)
+    plotOverSlot(virtualQw2[10, :, :], weights, virtualQ_dict2)
     U = np.zeros((len(weights),4))
     U[:,0] = aveU
     U[:,1] = aveU1
     U[:,2] = aveU2
     U[:,3] = aveU3
     plotUtilityOverWeights(U, diff, utility_dict2)
-    # greedy(CHCAP, S)
-    # randomAllocation(CHCAP, S)
-    # delaySensitive(CHCAP, S)
-    # algList = ["K-MWIS", "Random", "Delay-sensitive", "Greedy"]
-    # # algList = ["K-MWIS"]
-    # # 队列对比图
-    # plotQw(enQw, flowQw, dataQw, virtualQw)
-    # #     Utility - V对比图
-    # plotCompareUnderWeight("Utility - V Under Different Algrithm", "Value of V", "Utility",
-    #                        loadValueTriaxis("E:\\utilityCompare", 1, len(weights), 1), algList)
-    # numofCA = loadValueTriaxis("E:\\numOfCA", 1, timeSlots, len(weights))
-    # totalNumOfCA = np.sum(numofCA, axis=0)
-    #
-    # plotCompareUnderWeight("Number of Links with Channel Allocated", "time", "Number of Links", totalNumOfCA, algList)

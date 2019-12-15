@@ -1,6 +1,6 @@
 import numpy as np
-epsilons=np.array([0.8])
-timeSlots=100000
+epsilons=np.array([1.8])
+timeSlots=20000
 # 单位 秒(s)
 tau=20
 # 单位 W(瓦特) 0~7dBm
@@ -50,7 +50,7 @@ numOfCH=4
 # weights=np.array(range(200,8000,200))
 # 在上述条件确定的时候，weight最大到8000时utility开始收敛
 ############### mark over ###########
-weights=np.array(range(2000,8000,500))
+weights=np.array(range(1000,7000,2000))
 # weights = np.array([600])
 maxSlop = 1
 beta = 1
