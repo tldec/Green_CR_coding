@@ -13,3 +13,4 @@ def updateVirtualQ(virtualQ,dataQ,epsilon,dataTransVec,dataDropVec,chMax,t):
         else:
             virtualQ[n,t+1] = 0
 
+
