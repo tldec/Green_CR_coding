@@ -1,6 +1,6 @@
 import  numpy as np
 epsilons = np.array(range(20,480,20))/100
-timeSlots= 50
+timeSlots= 5000
 # 单位 秒(s)
 tau=20
 # 单位 W(瓦特) 0~7dBm
