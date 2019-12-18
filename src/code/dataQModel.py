@@ -12,11 +12,11 @@ def computeDataHar(dataQ,enQ,batterCapacity,w,t):
         if tmp == 0:
             dataHarVec[n] = dataGenVec[n]
         else:
-            tmp = weights[w]/tmp -1
-            if tmp < 0:
+            har = weights[w]/tmp -1
+            if har < 0:
                 dataHarVec[n] = 0
             else:
-                dataHarVec[n] = min(tmp,dataArrival_max)
+                dataHarVec[n] = min(har,dataGenVec[n])
     # print("dataHar:\n",dataHarVec)
     return dataHarVec
 
@@ -24,7 +24,7 @@ def computeTransRecv(caResults,links,dist,chCapacity,dataQ,t):
     # 对应位置元素相乘，计算链路流量
     # print("CA:",caResults)
     # print("CHCAP:",chCapacity)
-    tmp = caResults * chCapacity
+    tmp = caResults * chCapacity*tau*0.6
     # print("tmp:",tmp)
     dataTransVec  = np.zeros(numOfN)
     dataRecvVec = np.zeros_like(dataTransVec)
