@@ -4,6 +4,12 @@
 import numpy as np
 from code.config import *
 from math import inf
+import numpy as np
+from code.config import *
+from math import inf
+import numpy as np
+from code.config import *
+from math import inf
 def computeDataHar(dataQ,enQ,batterCapacity,w,t):
     dataGenVec = np.random.uniform(0, 1, (numOfN, 1)) * dataArrival_max
     dataHarVec = np.zeros((numOfN,1))
@@ -12,11 +18,11 @@ def computeDataHar(dataQ,enQ,batterCapacity,w,t):
         if tmp == 0:
             dataHarVec[n] = dataGenVec[n]
         else:
-            tmp = weights[w]/tmp -1
-            if tmp < 0:
+            har = weights[w]/tmp -1
+            if har < 0:
                 dataHarVec[n] = 0
             else:
-                dataHarVec[n] = min(tmp,dataArrival_max)
+                dataHarVec[n] = min(har,dataGenVec[n])
     # print("dataHar:\n",dataHarVec)
     return dataHarVec
 
@@ -24,7 +30,7 @@ def computeTransRecv(caResults,links,dist,chCapacity,dataQ,t):
     # 对应位置元素相乘，计算链路流量
     # print("CA:",caResults)
     # print("CHCAP:",chCapacity)
-    tmp = caResults * chCapacity
+    tmp = caResults * chCapacity*tau*trans_time_rate
     # print("tmp:",tmp)
     dataTransVec  = np.zeros(numOfN)
     dataRecvVec = np.zeros_like(dataTransVec)
@@ -60,6 +66,5 @@ def updateDataQ(dataQ,dataHarVec,dataTransVec,dataRecvVec,dataDropVec,t):
     dataQ[:,t+1] = dataQ[:,t] - dataTransVec.reshape(dataQ[:,t].shape) - dataDropVec.reshape(dataQ[:,t].shape) \
                    + dataRecvVec.reshape(dataQ[:,t].shape) + dataHarVec.reshape(dataQ[:,t].shape)
     dataQ[0,t+1] = 0
-
 
 

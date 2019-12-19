@@ -45,6 +45,3 @@ class Graph:
         self.updateDegree()
         # print("删除后 V:", self.V)
         # print("删除后 dList:", self.dList)
-
-
-
