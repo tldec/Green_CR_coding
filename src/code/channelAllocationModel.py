@@ -101,4 +101,4 @@ def channelAllocation(Edge, enQ, dataQ, virtualQ, links, chCap, batterCapacity, 
     return caResults
 
 chooseMethod = {"kmwis": chooseMaxWeighted,  "random": chooseRandom,"delay":chooseMaxWeighted,"greedy":chooseMaxWeighted}
-weightMethod = {"kmwis":weightK_MWIS,"random":weightK_MWIS,"delay":weightMaxBackLog,"greedy":weightMaxEnergy}
+weightMethod = {"kmwis":weightK_MWIS,"random":weightMaxBackLog,"delay":weightMaxBackLog,"greedy":weightMaxEnergy}

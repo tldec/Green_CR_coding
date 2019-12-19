@@ -23,8 +23,8 @@ def plotOverSlot(timeSlots,val,diff,plt_dict):
     plt.show()
 
 def plotUtilityOverWeights(weights,val,diff,plt_dict):
+    # print("val:",val)
     if diff is None:
-
         plt.title(plt_dict['title'])
         plt.plot(weights, val, c=__randomcolor(), linestyle='-', marker='s')
         plt.xlabel(plt_dict['xlabel'])
@@ -34,9 +34,10 @@ def plotUtilityOverWeights(weights,val,diff,plt_dict):
     else:
         plt.title(plt_dict['title'])
         for w in range(len(diff)):
-            # print(val[:,w])
+            # print(val)
             lbl = "{0}".format(diff[w])
-            plt.plot(weights, val[w,:], c=__randomcolor(),label=lbl,linestyle='-',marker='s')
+            # print("val[:,w]",val[:,w])
+            plt.plot(weights, val[:,w], c=__randomcolor(),label=lbl,linestyle='-',marker='s')
         plt.xlabel(plt_dict['xlabel'])
         plt.ylabel(plt_dict['ylabel'])
         plt.legend()  # 显示图例

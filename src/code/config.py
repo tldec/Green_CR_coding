@@ -1,14 +1,14 @@
 import numpy as np
 # epsilons=np.array(range(0,60,10))/10
-epsilons = np.array(range(20,480,20))/100
-timeSlots= 5000
+epsilons = np.array([1.2])
+timeSlots= 50000
 # 单位 秒(s)
 tau=20
 # 单位 W(瓦特) 0~7dBm
 P_T=0.94
 # J/bit
 P_H=0.069
-fpath = "E:\\UtilityUnderDiffEpsilon\\"
+fpath = "E:\\data\\UtilityComparationDiffAlg\\"
 
 # 最大采集速率 2-6kb/s
 dataArrival_max= 10
@@ -52,8 +52,8 @@ numOfCH=4
 # weights=np.array(range(200,8000,200))
 # 在上述条件确定的时候，weight最大到8000时utility开始收敛
 ############### mark over ###########
-# weights=np.array(range(100,550,50))
-weights = np.array([400,600,800])
+weights=np.array(range(50,1050,50))
+# weights = np.array([100])
 maxSlop = 1
 beta = 1
 noise = 1e-5

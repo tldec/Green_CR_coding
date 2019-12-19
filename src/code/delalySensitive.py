@@ -9,14 +9,13 @@ from code.energyQModel import *
 from code.dataQModel import *
 from code.virtualQModel import *
 from code.channelAllocationModel import *
-from code.flowQModel import *
 import matplotlib.pyplot as plt
 import datetime
 import random
 import code.greedy as gd
 # 初始化结点能量队列
 enQ = np.zeros((numOfN, timeSlots))
-enQw = np.zeros((numOfN, timeSlots, len(weights)))
+enQw = np.zeros((numOfN, timeSlots, len(weights),len(epsilons)))
 # 能量队列上界
 enQ_max = np.zeros(len(weights))
 # 初始化结点数据队列
@@ -26,14 +25,14 @@ dataQw = np.zeros_like(enQw)
 dataQ_max = np.zeros_like(enQ_max)
 # 初始化结点虚拟队列
 virtualQ = np.zeros_like(enQ)
-virtualQw = np.zeros((numOfN, timeSlots, len(weights)))
+virtualQw = np.zeros_like(enQw)
 # 虚拟队列上界
 virtualQ_max = np.zeros_like(enQ_max)
 # 初始化每个结点的网络效益
 # sum_{n:N} f(h_n - d_n)
 utility = np.zeros((numOfN, timeSlots))
 # 平均网络效益-权重
-aveUtility = np.zeros((len(weights)))
+aveUtility = np.zeros((len(weights),len(epsilons)))
 # 每个时结点之间的流量
 trafficOverSlot = np.zeros((timeSlots, len(weights)))
 # 记录每个时隙结点发送的数据
@@ -55,11 +54,14 @@ numofCA = np.zeros((timeSlots, len(weights)))
 # 记录历史信道状态和信道容量
 state = np.zeros((numOfCH, 1, timeSlots, len(weights)))
 chCap = np.zeros((numOfL, numOfCH, timeSlots, len(weights)))
+# 最大信道容量
+chMax = bandWidth * np.log2(1 + P_T * 1.5) / ((minDist ** 2) * noise) / 1000
 # 数据丢弃上限
-dropMax = np.zeros(len(epsilons))
+dropMax = dataArrival_max + chMax
 # 记录每个时隙丢弃的数据量
-dropMw = np.zeros((timeSlots, len(weights)))
-
+dropMw = np.zeros((len(weights),len(epsilons)))
+trafficOverSlotE = np.zeros((len(weights),len(epsilons)))
+harMw =  np.zeros((len(weights),len(epsilons)))
 # 信道可接入概率
 # 主用户信道状态集 0 表示不可用 1 表示可用
 access = [0, 1]
@@ -71,7 +73,7 @@ maxPR = np.max(P_R)
 P_max = max(P_T * tau * 0.3, maxPR * tau * 0.3) + P_H * dataArrival_max
 
 
-def delaySensitive(chCap,state):
+def delaySensitive(chCap,state,U,T,H,D):
     start = datetime.datetime.now()
     print("\nDelay-Sensitive begins")
     chMax = bandWidth * np.log2(1 + P_T * 1.5) / ((minDist ** 2) * noise) / 1000
@@ -81,7 +83,6 @@ def delaySensitive(chCap,state):
     chMax = bandWidth * np.log2(1 + P_T * 1.5) / ((minDist ** 2) * noise) / 1000
     for e in range(len(epsilons)):
         epsilon = epsilons[e]
-        dropMax[e] = max(epsilon, (dataArrival_max + chMax))
         W_1 = (chMax / P_T) * (weights * beta * maxSlop + epsilons[e] + weights * maxSlop + chMax + 2 * dataArrival_max)
         W_2 = (1 / P_H) * (weights * maxSlop + dataArrival_max + chMax)
         # print("W_1:",W_1,"W_2",W_2)
@@ -101,17 +102,17 @@ def delaySensitive(chCap,state):
                 # channelCapacity = bandWidth * (weight / 1000) * np.log2(
                 #     1 + P_T * (np.random.rand(numOfL, numOfCH) + 0.5) / \
                 #     ((distOfLink ** 2) * noise)) * chState.T
-                enHarVec = computeEnHar(enQ, enQ_max[w], t)
+                enHarVec = enHar(w, t)
                 enHarM[:, t] = enHarVec.T
 
-                dataHarVec = computeDataHar(dataQ, enQ, enQ_max[w], w, t)
+                dataHarVec = dataHar( w, t)
                 dataHarM[:, t] = dataHarVec.T
                 # Edge, enQ, dataQ, virtualQ, links, chCap, batterCapacity, P_R, chState, P_max, alg, t
-                caResults = channelAllocation(Edge, enQ, dataQ, virtualQ, link, channelCapacity, enQ_max[w], P_R,
+                caResults = channelAllocation(Edge, enQ, dataQ, None, link, channelCapacity, enQ_max[w], P_R,
                                               chState, P_max, "delay", t)
                 dataTransVec, dataRecvVec = computeTransRecv(caResults, link, dist, channelCapacity, dataQ, t)
 
-                dataDropVec = computeDrop(virtualQ, dataQ, dataTransVec, weight, dropMax[e], t)
+                dataDropVec = dataDrop(w, t)
                 dataDropM[:, t] = dataDropVec.T
                 enConVec = computeEnConsumption(caResults, link, distOfLink, dataHarVec)
                 for n in range(numOfN):
@@ -128,17 +129,59 @@ def delaySensitive(chCap,state):
                         utility[0, t] = 0
                 updateEnQ(enQ, enHarVec, enConVec, enQ_max[w], t)
                 updateDataQ(dataQ, dataHarVec, dataTransVec, dataRecvVec, dataDropVec, t)
-                updateVirtualQ(virtualQ, dataQ, epsilon, dataTransVec, dataDropVec, chMax, t)
-            aveUtility[w] = np.sum(np.average(utility, axis=1))
-            enQw[:, :, w] = enQ
-            dataQw[:, :, w] = dataQ
-            # 只使用一个流队列
-            virtualQw[:, :, w] = virtualQ
-            print("w =", weight, "aveUtility =", aveUtility[w])
-        np.savetxt('E:\\data\\utilityCompare_delay.csv', aveUtility, delimiter=',')
-        np.savetxt('E:\\data\\trafficOverSlot_delay.csv', trafficOverSlot, delimiter=',')
-        np.savetxt('E:\\data\\numOfCA_delay.csv', numofCA, delimiter=',')
-        np.savetxt('E:\\data\\dataDrop_delay.csv', dropMw, delimiter=',')
+            aveUtility[w,e] = np.sum(np.average(utility, axis=1))
+            enQw[:, :, w] = enQ.reshape(enQw[:, :, w].shape)
+            dataQw[:, :, w] = dataQ.reshape(enQw[:, :, w].shape)
+            print("w =", weight, "aveUtility =", aveUtility[w,e])
+        dropMw[w, e] = np.average(np.average(dataDropM[1:, :], axis=0))
+        harMw[w, e] = np.average(np.average(dataHarM[1:, :], axis=0))
+        trafficOverSlotE[w, e] = np.average(trafficOverSlot[:, 0])
+        np.savetxt("{0}{1}.csv".format(fpath, "utilityCompare_delay"), aveUtility, delimiter=',')
+        np.savetxt("{0}{1}.csv".format(fpath, "trafficOverSlot_delay"), trafficOverSlotE, delimiter=',')
+        np.savetxt("{0}{1}.csv".format(fpath, "dataHar_delay"), harMw, delimiter=',')
+        np.savetxt("{0}{1}.csv".format(fpath, "dataDrop_delay"), dropMw, delimiter=',')
         endGreedy = datetime.datetime.now()
         print("Delay-Sensitive finished ! Time Spent : %s " % (endGreedy - start))
-    return enQw, dataQw, virtualQw
+        for w in range(len(weights)):
+            U[w, 2] = aveUtility[w, 0]
+            D[w, 2] = dropMw[w, 0]
+            T[w, 2] = trafficOverSlotE[w, 0]
+            H[w, 2] = harMw[w, 0]
+
+def dataHar(w,t):
+    dataGenVec = np.random.uniform(0, 1, (numOfN, 1)) * dataArrival_max
+    dataHarVec = np.zeros_like(dataGenVec)
+    for n in range(numOfN):
+        if enQ[n,t] < P_max or dataQ[n,t] >= dataQ_max[w]:
+            # if  enQ[n,t] < P_max:
+            #     print("能量不足！")
+            # else:
+            #     print("数据缓冲区满！")
+            dataHarVec[n] = 0
+        else:
+            # print("w",w)
+            dataHarVec[n] = np.min(dataQ_max[w]-dataQ[n,t])
+    return dataHarVec
+
+def enHar(w,t):
+    enGenVec = np.random.uniform(0, 1, (numOfN, 1)) * EH_max * tau
+    enHarVec = enGenVec.copy()
+    for n in range(numOfN):
+        # print("enQ_max[w]",enQ_max[w])
+        restCapacity = enQ_max[w] - enQ[n, t]
+        # print("restCapacity",restCapacity)
+        # print(restCapacity)
+        if restCapacity < 0 :
+            enHarVec[n] = 0
+        else:
+            enHarVec[n] = min(restCapacity, enGenVec[n])
+    return enHarVec
+
+def dataDrop(w,t):
+    dataDropVec = np.zeros((numOfN,1))
+    for n in range(numOfN):
+        if dataQ[n,t] > dataQ_max[w] * 0.5:
+            dataDropVec[n] = dropMax
+        else:
+            dataDropVec[n] = 0
+    return  dataDropVec

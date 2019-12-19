@@ -9,7 +9,6 @@ from code.energyQModel import *
 from code.dataQModel import *
 from code.virtualQModel import *
 from code.channelAllocationModel import *
-from code.flowQModel import *
 from code.greedy import greedy
 from code.delalySensitive import delaySensitive
 from code.randomAllocation import randomAllocation
@@ -18,6 +17,7 @@ import random
 import datetime
 from code.plot import *
 
+algList = ["K-MWIS", "Random", "Delay-Sensitive", "Greedy"]
 # 初始化结点能量队列
 enQ = np.zeros((numOfN, timeSlots))
 enQw = np.zeros((numOfN, timeSlots, len(weights),len(epsilons)))
@@ -35,11 +35,14 @@ virtualQw = np.zeros_like(enQw)
 virtualQ_max = np.zeros_like(enQ_max)
 # 初始化每个结点的网络效益
 # sum_{n:N} f(h_n - d_n)
+# 不同算法的网络效益
+U = np.zeros((len(weights),len(algList)))
 utility = np.zeros((numOfN, timeSlots))
 # 平均网络效益-权重
 aveUtility = np.zeros((len(weights),len(epsilons)))
 # 每个时结点之间的流量
 trafficOverSlot = np.zeros((timeSlots, len(weights)))
+
 # 记录每个时隙结点发送的数据
 dataTransM = np.zeros((numOfN, timeSlots))
 # 记录每个时隙结点接收的数据
@@ -65,8 +68,14 @@ chMax = bandWidth * np.log2(1 + P_T * 1.5) / ((minDist ** 2) * noise) / 1000
 dropMax = dataArrival_max + chMax
 # 记录每个时隙丢弃的数据量
 dropMw = np.zeros((len(weights),len(epsilons)))
+# 不同算法下IoT 结点平均丢弃数据
+D = np.zeros((len(weights),len(algList)))
 trafficOverSlotE = np.zeros((len(weights),len(epsilons)))
+# 不同算法下IoT 结点平均发送数据
+T = np.zeros((len(weights),len(algList)))
 harMw =  np.zeros((len(weights),len(epsilons)))
+# 不同算法下IoT 结点平均采集数据
+H = np.zeros((len(weights),len(algList)))
 # 信道可接入概率
 # 主用户信道状态集 0 表示不可用 1 表示可用
 access = [0, 1]
@@ -148,126 +157,62 @@ def KMWIS():
             #            enQ, delimiter=',')
             # np.savetxt("{0}{1}_V_{2}_e_{3}.csv".format(fpath,  "virtualQ", weights[w], epsilons[e]),
             #            enQ, delimiter=',')
-            print("e = ",epsilons[e],"w =", weight, "aveUtility =", aveUtility[w,e])
+            print("w =", weight, "aveUtility =", aveUtility[w,e])
         dropMw[w,e] = np.average(np.average(dataDropM[1:,:],axis=0))
         harMw[w,e] = np.average(np.average(dataHarM[1:,:],axis=0))
         trafficOverSlotE[w,e] = np.average(trafficOverSlot[:,0])
-    np.savetxt("{0}{1}.csv".format(fpath,"utilityCompare"), aveUtility, delimiter=',')
-    np.savetxt("{0}{1}.csv".format(fpath,"trafficOverSlot"), trafficOverSlotE, delimiter=',')
-    np.savetxt("{0}{1}.csv".format(fpath,"dataHar"), harMw, delimiter=',')
-    np.savetxt("{0}{1}.csv".format(fpath,"dataDrop"), dropMw, delimiter=',')
+    np.savetxt("{0}{1}.csv".format(fpath,"utilityCompare_kmwis"), aveUtility, delimiter=',')
+    np.savetxt("{0}{1}.csv".format(fpath,"trafficOverSlot_kmwis"), trafficOverSlotE, delimiter=',')
+    np.savetxt("{0}{1}.csv".format(fpath,"dataHar_kmwis"), harMw, delimiter=',')
+    np.savetxt("{0}{1}.csv".format(fpath,"dataDrop_kmwis"), dropMw, delimiter=',')
     endKMWIS = datetime.datetime.now()
     print("KMWIS finished ! Time Spent : %s " % (endKMWIS - start))
     return state, chCap
-
-def compareEpsilon():
-    print("Comparation begins")
-    start = datetime.datetime.now()
-    S, CHCAP = KMWIS()
-    end = datetime.datetime.now()
-    enQ_dict1 = {"title": "Energy Queue KMWIS", "para_name": "epsilon", "xlabel": "time slots",
-                 "ylabel": "Energy Queue Length"}
-    dataQ_dict1 = {"title": "Data Queue KMWIS", "para_name": "epsilon", "xlabel": "time slots", "ylabel": "Data Queue Length"}
-    virtualQ_dict1 = {"title": "Virtual Queue KMWIS", "para_name": "epsilon", "xlabel": "time slots",
-                      "ylabel": "Data Queue Length"}
-    enQ_dict2 = {"title": "Energy Queue KMWIS", "para_name": "V", "xlabel": "time slots",
-                 "ylabel": "Energy Queue Length"}
-    dataQ_dict2 = {"title": "Data Queue KMWIS", "para_name": "V", "xlabel": "time slots", "ylabel": "Data Queue Length"}
-    virtualQ_dict2 = {"title": "Virtual Queue KMWIS", "para_name": "V", "xlabel": "time slots",
-                      "ylabel": "Data Queue Length"}
-    enQ_dict1 = {"title": "Energy Queue KMWIS", "para_name": "V", "xlabel": "time slots",
-                 "ylabel": "Energy Queue Length", "fname": "E:\\eQ_1.png"}
-    dataQ_dict1 = {"title": "Data Queue KMWIS", "para_name": "V", "xlabel": "time slots", "ylabel": "Data Queue Length",
-                   "fname": "E:\\dQ_1.png"}
-    virtualQ_dict1 = {"title": "Virtual Queue KMWIS", "para_name": "V", "xlabel": "time slots",
-                      "ylabel": "Data Queue Length", "fname": "E:\\vQ_1.png"}
-    enQ_dict2 = {"title": "Energy Queue Greedy", "para_name": "V", "xlabel": "time slots",
-                 "ylabel": "Energy Queue Length", "fname": "E:\\eQ_2.png"}
-    dataQ_dict2 = {"title": "Data Queue Greedy", "para_name": "V", "xlabel": "time slots",
-                   "ylabel": "Data Queue Length", "fname": "E:\\dQ_2.png"}
-    virtualQ_dict2 = {"title": "Virtual Queue Greedy", "para_name": "V", "xlabel": "time slots",
-                      "ylabel": "Data Queue Length", "fname": "E:\\VQ_2.png"}
-    # utility_dict = {"title": "Utility-V", "para_name": "", "xlabel": "Value Of V", "ylabel": "Sum of Utility",
-    #                 "fname": "E:\\Utility_V.png"}
-    utility_dict2 = {"title": "Utility Compare", "xlabel": "Value Of epsilon",
-                     "ylabel": "Sum of Utility"}
-    # idx = int(len(weights)/2)
-    # idx2 = int(len(epsilons)/2)
-    # print(enQw[10, :,idx, :].shape)
-    # plotOverSlot(timeSlots,enQw[10, :,idx, :], epsilons, enQ_dict1)
-    # plotOverSlot(timeSlots,dataQw[10, :,idx, :], epsilons, dataQ_dict1)
-    # plotOverSlot(timeSlots,virtualQw[10, :,idx, :], epsilons, virtualQ_dict1)
-    # plotOverSlot(timeSlots,enQw[10, :,:,idx2 ], weights, enQ_dict2)
-    # plotOverSlot(timeSlots,dataQw[10, :, :, idx2], weights, dataQ_dict2)
-    har_epsilon_dict = {"xlabel":"time slots","ylabel":"Average Data Harvested","title":"Average Data Harvested Comparation under Epsilons"
-                        }
-    drop_epsilon_dict = {"xlabel": "time slots", "ylabel": "Average Data Dropped",
-                        "title": "Average Data Dropping Comparation under Epsilons"
-        }
-    traffic_epsilon_dict = {"xlabel": "time slots", "ylabel": "Average Data Transmitted",
-                         "title": "Average Data Transmitting Comparation under Epsilons"
-       }
-    print("\nComparation Finished! Time Spent: %s" % (end - start))
-    plotUtilityOverWeights(epsilons,harMw, weights, har_epsilon_dict)
-    plotUtilityOverWeights(epsilons,dropMw, weights, drop_epsilon_dict)
-    plotUtilityOverWeights(epsilons,trafficOverSlotE, weights, traffic_epsilon_dict)
-    plotUtilityOverWeights(epsilons,aveUtility, weights, utility_dict2)
 def compareAlg():
     print("Comparation begins")
     start = datetime.datetime.now()
     S, CHCAP = KMWIS()
-    enQw2, dataQw2, virtualQw2 = greedy(CHCAP, S)
-    enQw3, dataQw3, virtualQw3 = randomAllocation(CHCAP, S)
-    enQw4, dataQw4, virtualQw4 = delaySensitive(CHCAP, S)
+    H = np.zeros_like(U)
+    T = np.zeros_like(U)
+    D = np.zeros_like(U)
+    for w in range(len(weights)):
+       U[w,0] =  aveUtility[w, 0]
+       D[w,0] =  dropMw[w, 0]
+       T[w,0] =  trafficOverSlotE[w, 0]
+       H[w,0] =  harMw[w, 0]
+
+    randomAllocation(CHCAP, S,U,T,H,D)
+    delaySensitive(CHCAP, S,U,T,H,D)
+    greedy(CHCAP, S,U,T,H,D)
     end = datetime.datetime.now()
     print("\nComparation Finished! Time Spent: %s" % (end - start))
-    for w in range(len(weights)):
-        np.savetxt("{0}{1}_{2}_V_{3}.csv".format(fpath,"enQw", "kmwis",weights[w]), enQw[:, :, w], delimiter=',')
-        np.savetxt("{0}{1}_{2}_V_{3}.csv".format(fpath,"dataQw", "kmwis",weights[w]), dataQw[:, :, w], delimiter=',')
-        np.savetxt("{0}{1}_{2}_V_{3}.csv".format(fpath,"virtualQw", "kmwis",weights[w]), virtualQw[:, :, w], delimiter=',')
 
-        np.savetxt("{0}{1}_{2}_V_{3}.csv".format(fpath, "enQw", "greedy", weights[w]), enQw2[:, :, w], delimiter=',')
-        np.savetxt("{0}{1}_{2}_V_{3}.csv".format(fpath, "dataQw", "greedy", weights[w]), dataQw2[:, :, w], delimiter=',')
-        np.savetxt("{0}{1}_{2}_V_{3}.csv".format(fpath, "virtualQw", "greedy", weights[w]), virtualQw2[:, :, w],
-                   delimiter=',')
+    print("Network Utility")
+    utility_dict = {}
+    utility_dict['title'] = "Network Utility Comparation under Different Algrithm"
+    utility_dict['xlabel'] = "Value Of V"
+    utility_dict['ylabel'] = "Network Utility"
+    plotUtilityOverWeights(weights,U, algList, utility_dict)
+    print("Data Harvested")
+    har_dict = {}
+    drop_dict = {}
+    traff_dict = {}
+    har_dict["xlabel"] = "Value of V"
+    har_dict["ylabel"] = "Average Data Harvested of IoT Nodes"
+    har_dict["title"] = "Average Data Harvested By IoT Nodes under Different Algrithm "
+    plotUtilityOverWeights(weights, H, algList, har_dict)
+    print("Average Data-drops of IoT Nodes ")
+    drop_dict["xlabel"] = "Value of Epsilons"
+    drop_dict["ylabel"] = "Average Data-drops of IoT Nodes "
+    drop_dict["title"] = "Dropped Data By IoT Nodes under Different Algrithm"
+    plotUtilityOverWeights(weights, D, algList, drop_dict)
+    print("Average Traffics")
+    traff_dict["xlabel"] = "Value of Epsilons"
+    traff_dict["ylabel"] = "Average Traffics of IoT Nodes"
+    traff_dict["title"] = "Average Transmitted Data By IoT Nodes under Different Algrithm"
+    plotUtilityOverWeights(weights, T, algList, traff_dict)
 
-        np.savetxt("{0}{1}_{2}_V_{3}.csv".format(fpath, "enQw", "random", weights[w]), enQw3[:, :, w], delimiter=',')
-        np.savetxt("{0}{1}_{2}_V_{3}.csv".format(fpath, "dataQw", "random", weights[w]), dataQw3[:, :, w],
-                   delimiter=',')
-        np.savetxt("{0}{1}_{2}_V_{3}.csv".format(fpath, "virtualQw", "random", weights[w]), virtualQw3[:, :, w],
-                   delimiter=',')
-        np.savetxt("{0}{1}_{2}_V_{3}.csv".format(fpath, "enQw", "delay", weights[w]), enQw4[:, :, w], delimiter=',')
-        np.savetxt("{0}{1}_{2}_V_{3}.csv".format(fpath, "dataQw", "delay", weights[w]), dataQw4[:, :, w],
-                   delimiter=',')
-        np.savetxt("{0}{1}_{2}_V_{3}.csv".format(fpath, "virtualQw", "delay", weights[w]), virtualQw4[:, :, w],
-                   delimiter=',')
-
-    enQ_dict1 = {"title": "Energy Queue KMWIS", "para_name": "V", "xlabel": "time slots",
-                 "ylabel": "Energy Queue Length","fname":"E:\\eQ_1.png"}
-    dataQ_dict1 = {"title": "Data Queue KMWIS", "para_name": "V", "xlabel": "time slots", "ylabel": "Data Queue Length","fname":"E:\\dQ_1.png"}
-    virtualQ_dict1 = {"title": "Virtual Queue KMWIS", "para_name": "V", "xlabel": "time slots",
-                      "ylabel": "Data Queue Length","fname":"E:\\vQ_1.png"}
-    enQ_dict2 = {"title": "Energy Queue Greedy", "para_name": "V", "xlabel": "time slots",
-                 "ylabel": "Energy Queue Length","fname":"E:\\eQ_2.png"}
-    dataQ_dict2 = {"title": "Data Queue Greedy", "para_name": "V", "xlabel": "time slots",
-                   "ylabel": "Data Queue Length","fname":"E:\\dQ_2.png"}
-    virtualQ_dict2 = {"title": "Virtual Queue Greedy", "para_name": "V", "xlabel": "time slots",
-                      "ylabel": "Data Queue Length","fname":"E:\\VQ_2.png"}
-    utility_dict = {"title": "Utility-V", "para_name": "", "xlabel": "Value Of V", "ylabel": "Sum of Utility","fname":"E:\\Utility_V.png"}
-    utility_dict2 = {"title": "Utility Compare", "para_name": "epsilon","xlabel": "Value Of V", "ylabel": "Sum of Utility","fname":"E:\\Utility_V.png"}
-    diff = ["K-MWIS", "Random", "Delay-Sensitive", "Greedy", ]
-    # print(enQw[10, :, :].shape)
-    plotOverSlot(enQw[10, :, :], weights, enQ_dict1)
-    plotOverSlot(dataQw[10, :, :], weights, dataQ_dict1)
-    plotOverSlot(virtualQw[10, :, :], weights, virtualQ_dict1)
-
-    plotOverSlot(enQw2[10, :, :], weights, enQ_dict2)
-    plotOverSlot(dataQw2[10, :, :], weights, dataQ_dict2)
-    plotOverSlot(virtualQw2[10, :, :], weights, virtualQ_dict2)
-    U = np.zeros((len(weights), 4))
-    plotUtilityOverWeights(U, diff, utility_dict2)
 
 if __name__ == '__main__':
-    # compareAlg()
-    compareEpsilon()
+    compareAlg()
 
