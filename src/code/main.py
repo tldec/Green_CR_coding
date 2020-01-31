@@ -212,7 +212,18 @@ def compareAlg():
     traff_dict["title"] = "Average Transmitted Data By IoT Nodes under Different Algrithm"
     plotUtilityOverWeights(weights, T, algList, traff_dict)
 
-
+def compareWeights():
+    print("Comparation begins")
+    start = datetime.datetime.now()
+    KMWIS()
+    utility_dict = {}
+    utility_dict["xlabel"] = "Value of Weights"
+    utility_dict["ylabel"] = "Network Utility"
+    utility_dict["title"] = "Network Utility under Different Weights"
+    utility_dict["para_name"] = "V"
+    plotUtilityOverWeights(weights, aveUtility, epsilons, utility_dict)
+    end = datetime.datetime.now()
+    print("\nComparation Finished! Time Spent: %s" % (end - start))
 if __name__ == '__main__':
     compareAlg()
 
